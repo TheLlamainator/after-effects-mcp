@@ -1,0 +1,60 @@
+After Effects MCP - How To Use
+
+1) Prerequisites
+- Adobe After Effects installed.
+- Node.js installed.
+- In After Effects: Edit > Preferences > Scripting & Expressions > enable "Allow Scripts to Write Files and Access Network".
+
+2) Build and install bridge
+- Open terminal in this project folder.
+- Run: npm install
+- Run: npm run build
+- Run: npm run install-bridge
+
+3) Start server from Claude/Desktop config
+Use this command setup in your MCP config:
+- command: C:\Program Files\nodejs\node.exe
+- args: C:\Users\llama\Documents\Projects\AEMCP\build\index.js
+
+4) Open bridge panel in After Effects
+- Restart After Effects after install.
+- Open: Window > mcp-bridge-auto.jsx
+- Keep this panel open while using MCP tools.
+
+5) Basic workflow
+- Call a tool (for example: getProjectInfo, listLayerEffects, apply-effect).
+- If tool is queued, call get-results after 1-3 seconds.
+- Some operations may finish after the tool timeout; get-results usually contains final output.
+
+6) Recommended tools
+- Project/layers: run-script (getProjectInfo, listCompositions, getLayerInfo)
+- Effects: apply-effect, list-layer-effects, set-effect-property, remove-effect
+- Presets: list-presets, search-presets, apply-preset
+- Layer utils: create-adjustment-layer, center-layers, get-layer-clip-frames
+- Markers/audio: add-marker, add-markers-bulk, set-audio-levels, get-audio-info, analyze-audio-waveform
+
+7) Audio waveform to markers workflow
+- Step 1: get-audio-info for your target layer (copy sourceFilePath from result).
+- Step 2: analyze-audio-waveform with that file path.
+- Step 3: use returned peakTimes to build markers[] and call add-markers-bulk.
+
+8) Common issues
+- "Timed out waiting for bridge result":
+  - Make sure MCP Bridge Auto panel is open in AE.
+  - Run get-results once or twice after timeout.
+- "Result file appears stale":
+  - AE panel is not running or cannot write files.
+  - Re-open panel and verify scripting permission.
+- Server disconnect on startup:
+  - Rebuild with npm run build.
+  - Restart Claude/Desktop so MCP reloads.
+
+9) Useful local paths
+- Commands file: C:\Users\llama\Documents\ae-mcp-bridge\ae_command.json
+- Results file: C:\Users\llama\Documents\ae-mcp-bridge\ae_mcp_result.json
+
+10) Update cycle when code changes
+- npm run build
+- npm run install-bridge
+- Restart After Effects
+- Restart Claude/Desktop MCP client

@@ -868,6 +868,96 @@ function listLayerEffects(args) {
     }
 }
 
+function listAvailableEffects(args) {
+    try {
+        var params = args || {};
+        var query = params.query ? String(params.query).toLowerCase() : "";
+        var includeObsolete = !!params.includeObsolete;
+        var maxResults = (params.maxResults !== undefined && params.maxResults !== null)
+            ? Number(params.maxResults)
+            : 5000;
+
+        if (!app.effects) {
+            throw new Error("After Effects app.effects API is not available in this version.");
+        }
+
+        var effectsCollection = app.effects;
+        var collectionCount = 0;
+        if (effectsCollection.length !== undefined && effectsCollection.length !== null) {
+            collectionCount = Number(effectsCollection.length);
+        } else if (effectsCollection.numEffects !== undefined && effectsCollection.numEffects !== null) {
+            collectionCount = Number(effectsCollection.numEffects);
+        }
+
+        var effects = [];
+        for (var i = 0; i < collectionCount; i++) {
+            var effectObj = null;
+            try {
+                effectObj = effectsCollection[i];
+            } catch (e1) {
+                effectObj = null;
+            }
+            if (!effectObj && effectsCollection.effect) {
+                try {
+                    effectObj = effectsCollection.effect(i + 1);
+                } catch (e2) {
+                    effectObj = null;
+                }
+            }
+            if (!effectObj) {
+                continue;
+            }
+
+            var name = "";
+            var matchName = "";
+            var category = "";
+            var isObsolete = false;
+
+            try { name = effectObj.displayName || effectObj.name || ""; } catch (e3) {}
+            try { matchName = effectObj.matchName || ""; } catch (e4) {}
+            try { category = effectObj.category || ""; } catch (e5) {}
+            try { isObsolete = !!effectObj.isObsolete; } catch (e6) {}
+
+            if (!includeObsolete && isObsolete) {
+                continue;
+            }
+
+            if (query) {
+                var haystack = (String(name) + " " + String(matchName) + " " + String(category)).toLowerCase();
+                if (haystack.indexOf(query) === -1) {
+                    continue;
+                }
+            }
+
+            effects.push({
+                index: i,
+                name: name,
+                matchName: matchName,
+                category: category,
+                isObsolete: isObsolete
+            });
+
+            if (effects.length >= maxResults) {
+                break;
+            }
+        }
+
+        return JSON.stringify({
+            status: "success",
+            query: query || null,
+            includeObsolete: includeObsolete,
+            returnedCount: effects.length,
+            totalScanned: collectionCount,
+            effects: effects
+        }, null, 2);
+    } catch (error) {
+        return JSON.stringify({
+            status: "error",
+            message: error.toString()
+        }, null, 2);
+    }
+}
+
 function getInterpolationTypeByName(name) {
     if (!name) {
         return null;
@@ -2356,6 +2446,11 @@ function executeCommand(command, args) {
                 logToPanel("Calling listLayerEffects function...");
                 result = listLayerEffects(args);
                 logToPanel("Returned from listLayerEffects.");
+                break;
+            case "listAvailableEffects":
+                logToPanel("Calling listAvailableEffects function...");
+                result = listAvailableEffects(args);
+                logToPanel("Returned from listAvailableEffects.");
                 break;
             case "setEffectProperty":
                 logToPanel("Calling setEffectProperty function...");

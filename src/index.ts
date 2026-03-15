@@ -308,6 +308,7 @@ server.tool(
       "applyEffect",
       "applyEffectTemplate",
       "listLayerEffects",
+      "listAvailableEffects",
       "setEffectProperty",
       "setEffectKeyframe",
       "applyLayerPreset",
@@ -497,6 +498,7 @@ Available scripts:
 - applyEffect: Apply an effect to a layer
 - applyEffectTemplate: Apply a predefined effect template to a layer
 - listLayerEffects: List effects on a layer (optionally with all properties)
+- listAvailableEffects: List all effects available in this After Effects installation
 - setEffectProperty: Edit any property on an effect by name/index/path
 - setEffectKeyframe: Add/edit keyframes for effect properties with graph/easing controls
 - applyLayerPreset: Apply an .ffx preset file to a layer
@@ -1051,6 +1053,42 @@ server.tool(
           {
             type: "text",
             text: `Error listing layer effects: ${String(error)}`
+          }
+        ],
+        isError: true
+      };
+    }
+  }
+);
+
+server.tool(
+  "list-available-effects",
+  "List all effects available in this After Effects installation, with optional text filter.",
+  {
+    query: z.string().optional().describe("Optional text filter. Matches effect name, matchName, and category."),
+    includeObsolete: z.boolean().optional().describe("Include obsolete effects (default: false)."),
+    maxResults: z.number().int().positive().max(20000).optional().describe("Maximum results to return (default: 5000).")
+  },
+  async (parameters) => {
+    try {
+      clearResultsFile();
+      writeCommandFile("listAvailableEffects", parameters);
+      const result = await waitForBridgeResult("listAvailableEffects", 10000, 250);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: result
+          }
+        ]
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error listing available effects: ${String(error)}`
           }
         ],
         isError: true
