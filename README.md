@@ -308,3 +308,9 @@ node build/index.js
 ## License
 
 MIT. See `LICENSE`.
+
+## Inspo
+
+https://github.com/Dakkshin/after-effects-mcp
+
+I took the base code from them but added a lot
