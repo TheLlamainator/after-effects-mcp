@@ -314,6 +314,8 @@ server.tool(
       "removeLayerEffect",
       "addMarker",
       "setLayerAudioLevels",
+      "getLayerAudioInfo",
+      "addMarkersFromArray",
       "test-animation",
       "bridgeTestEffects"
     ];
@@ -501,6 +503,8 @@ Available scripts:
 - removeLayerEffect: Remove one effect (or all effects) from a layer
 - addMarker: Add a layer or composition marker at a specified time
 - setLayerAudioLevels: Set audio levels (dB) on an audio/AV layer, optionally with keyframes
+- getLayerAudioInfo: Get audio metadata, source file path, existing markers, and audio level keyframes for a layer
+- addMarkersFromArray: Add multiple markers at once from an array of {timeInSeconds, comment, duration, label} objects
 
 Effect Templates:
 - gaussian-blur: Simple Gaussian blur effect
@@ -1677,6 +1681,183 @@ server.tool(
       return { content: [{ type: "text", text: result }] };
     } catch (error) {
       return { content: [{ type: "text", text: `Error setting audio levels: ${String(error)}` }], isError: true };
+    }
+  }
+);
+
+function analyzeWavAmplitudes(filePath: string, numPoints: number = 200): {
+  duration: number;
+  sampleRate: number;
+  channels: number;
+  amplitudes: number[];
+  peakTimes: number[];
+  waveformPoints: Array<{ time: number; amplitude: number }>;
+} | null {
+  try {
+    const buf = fs.readFileSync(filePath);
+    if (buf.slice(0, 4).toString("ascii") !== "RIFF") return null;
+    if (buf.slice(8, 12).toString("ascii") !== "WAVE") return null;
+
+    let offset = 12;
+    let fmtChannels = 0, fmtSampleRate = 0, fmtBitsPerSample = 0, fmtAudioFormat = 0;
+    let dataOffset = -1, dataSize = 0;
+
+    while (offset < buf.length - 8) {
+      const chunkId = buf.slice(offset, offset + 4).toString("ascii");
+      const chunkSize = buf.readUInt32LE(offset + 4);
+      if (chunkId === "fmt ") {
+        fmtAudioFormat  = buf.readUInt16LE(offset + 8);
+        fmtChannels     = buf.readUInt16LE(offset + 10);
+        fmtSampleRate   = buf.readUInt32LE(offset + 12);
+        fmtBitsPerSample = buf.readUInt16LE(offset + 22);
+      } else if (chunkId === "data") {
+        dataOffset = offset + 8;
+        dataSize   = chunkSize;
+      }
+      offset += 8 + chunkSize + (chunkSize % 2 !== 0 ? 1 : 0);
+    }
+
+    if (dataOffset < 0 || fmtAudioFormat !== 1 || fmtChannels === 0) return null;
+
+    const bytesPerSample = fmtBitsPerSample / 8;
+    const totalSamples   = Math.floor(dataSize / (bytesPerSample * fmtChannels));
+    const duration       = totalSamples / fmtSampleRate;
+    const samplesPerPoint = Math.max(1, Math.floor(totalSamples / numPoints));
+    const maxVal = fmtBitsPerSample === 8 ? 128 : Math.pow(2, fmtBitsPerSample - 1);
+
+    const amplitudes: number[] = [];
+    const waveformPoints: Array<{ time: number; amplitude: number }> = [];
+
+    for (let i = 0; i < numPoints; i++) {
+      let maxAmp = 0;
+      const startSample = i * samplesPerPoint;
+      const endSample   = Math.min(startSample + samplesPerPoint, totalSamples);
+      for (let s = startSample; s < endSample; s++) {
+        for (let c = 0; c < fmtChannels; c++) {
+          const bytePos = dataOffset + (s * fmtChannels + c) * bytesPerSample;
+          if (bytePos + bytesPerSample > buf.length) continue;
+          let sample = 0;
+          if (fmtBitsPerSample === 16)       sample = Math.abs(buf.readInt16LE(bytePos));
+          else if (fmtBitsPerSample === 8)   sample = Math.abs(buf.readUInt8(bytePos) - 128);
+          else if (fmtBitsPerSample === 24) {
+            const lo = buf.readUInt16LE(bytePos);
+            const hi = buf.readInt8(bytePos + 2);
+            sample = Math.abs((hi << 16) | lo);
+          }
+          else if (fmtBitsPerSample === 32)  sample = Math.abs(buf.readInt32LE(bytePos));
+          if (sample > maxAmp) maxAmp = sample;
+        }
+      }
+      const norm = maxAmp / maxVal;
+      const t    = (i / numPoints) * duration;
+      amplitudes.push(norm);
+      waveformPoints.push({ time: parseFloat(t.toFixed(4)), amplitude: parseFloat(norm.toFixed(4)) });
+    }
+
+    const maxAmplitude = Math.max(...amplitudes);
+    const threshold = maxAmplitude * 0.6;
+    const minGapSamples = Math.floor(numPoints * 0.03);
+    const peakTimes: number[] = [];
+    let lastPeakIdx = -minGapSamples;
+
+    for (let i = 1; i < amplitudes.length - 1; i++) {
+      if (
+        amplitudes[i] > threshold &&
+        amplitudes[i] >= amplitudes[i - 1] &&
+        amplitudes[i] >= amplitudes[i + 1] &&
+        i - lastPeakIdx >= minGapSamples
+      ) {
+        peakTimes.push(parseFloat(waveformPoints[i].time.toFixed(3)));
+        lastPeakIdx = i;
+      }
+    }
+
+    return { duration, sampleRate: fmtSampleRate, channels: fmtChannels, amplitudes, peakTimes, waveformPoints };
+  } catch {
+    return null;
+  }
+}
+
+server.tool(
+  "get-audio-info",
+  "Get audio metadata, source file path, existing markers, and audio level keyframes for a layer in After Effects.",
+  {
+    compIndex: z.number().int().positive().describe("1-based composition index."),
+    layerIndex: z.number().int().positive().optional().describe("Target layer index."),
+    layerName: z.string().optional().describe("Target layer name (alternative to layerIndex)."),
+  },
+  async (parameters) => {
+    try {
+      clearResultsFile();
+      writeCommandFile("getLayerAudioInfo", parameters);
+      const result = await waitForBridgeResult("getLayerAudioInfo", 7000, 250);
+      return { content: [{ type: "text", text: result }] };
+    } catch (error) {
+      return { content: [{ type: "text", text: `Error getting audio info: ${String(error)}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "analyze-audio-waveform",
+  "Analyze a WAV audio file to extract waveform amplitude data and detect peaks/transients. First call get-audio-info to retrieve the sourceFilePath, then pass it here. Returns normalized amplitude values (0-1) at evenly spaced time intervals plus an array of peak times where transients are detected.",
+  {
+    filePath: z.string().describe("Absolute path to the WAV audio file (obtained from get-audio-info sourceFilePath)."),
+    numPoints: z.number().int().positive().optional().describe("Number of amplitude samples to return (default: 200). Higher = more detail."),
+  },
+  async ({ filePath, numPoints = 200 }) => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        return { content: [{ type: "text", text: JSON.stringify({ status: "error", message: `File not found: ${filePath}` }) }], isError: true };
+      }
+      const result = analyzeWavAmplitudes(filePath, numPoints);
+      if (!result) {
+        return { content: [{ type: "text", text: JSON.stringify({ status: "error", message: "Could not parse audio file. Only uncompressed PCM WAV files are supported. For other formats, convert to WAV first." }) }], isError: true };
+      }
+      return {
+        content: [{ type: "text", text: JSON.stringify({
+          status: "success",
+          filePath,
+          duration: result.duration,
+          sampleRate: result.sampleRate,
+          channels: result.channels,
+          numPoints: numPoints,
+          peakCount: result.peakTimes.length,
+          peakTimes: result.peakTimes,
+          waveformPoints: result.waveformPoints
+        }, null, 2) }]
+      };
+    } catch (error) {
+      return { content: [{ type: "text", text: `Error analyzing waveform: ${String(error)}` }], isError: true };
+    }
+  }
+);
+
+server.tool(
+  "add-markers-bulk",
+  "Add multiple layer or composition markers at once. Use this after analyze-audio-waveform to place markers at detected peaks, or to add any set of markers in a single call.",
+  {
+    compIndex: z.number().int().positive().describe("1-based composition index."),
+    markerType: z.enum(["layer", "comp"]).optional().describe("'layer' (default) or 'comp' for composition-level markers."),
+    layerIndex: z.number().int().positive().optional().describe("Target layer index (required for layer markers)."),
+    layerName: z.string().optional().describe("Target layer name (alternative to layerIndex)."),
+    markers: z.array(z.object({
+      timeInSeconds: z.number().describe("Time in seconds for this marker."),
+      comment: z.string().optional().describe("Marker comment text."),
+      duration: z.number().optional().describe("Marker duration in seconds (0 = point marker)."),
+      label: z.number().int().min(0).max(16).optional().describe("Label color index (0-16)."),
+      chapter: z.string().optional().describe("Chapter name."),
+      url: z.string().optional().describe("URL link."),
+    })).describe("Array of markers to add."),
+  },
+  async (parameters) => {
+    try {
+      clearResultsFile();
+      writeCommandFile("addMarkersFromArray", parameters);
+      const result = await waitForBridgeResult("addMarkersFromArray", 10000, 250);
+      return { content: [{ type: "text", text: result }] };
+    } catch (error) {
+      return { content: [{ type: "text", text: `Error adding bulk markers: ${String(error)}` }], isError: true };
     }
   }
 );

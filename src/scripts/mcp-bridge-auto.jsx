@@ -1454,6 +1454,183 @@ function getLayerClipFrames(args) {
     }
 }
 
+function getLayerAudioInfo(args) {
+    try {
+        var params = args || {};
+        var compIndex = params.compIndex || 1;
+        var comp = app.project.item(compIndex);
+        if (!comp || !(comp instanceof CompItem)) {
+            throw new Error("Composition not found at index " + compIndex);
+        }
+
+        var layer = null;
+        if (params.layerIndex !== undefined && params.layerIndex !== null) {
+            layer = comp.layer(params.layerIndex);
+            if (!layer) { throw new Error("Layer not found at index " + params.layerIndex); }
+        } else if (params.layerName) {
+            for (var i = 1; i <= comp.numLayers; i++) {
+                if (comp.layer(i).name === params.layerName) { layer = comp.layer(i); break; }
+            }
+            if (!layer) { throw new Error("Layer not found with name '" + params.layerName + "'."); }
+        } else {
+            throw new Error("Provide layerIndex or layerName.");
+        }
+
+        var hasAudio = layer.hasAudio || false;
+        var audioEnabled = layer.audioEnabled || false;
+        var sourceInfo = null;
+        var sourceFilePath = null;
+
+        if (layer.source) {
+            var src = layer.source;
+            sourceInfo = {
+                name: src.name,
+                hasAudio: src.hasAudio || false,
+                audioChannels: src.audioChannels || 0,
+                audioSampleRate: src.audioSampleRate || 0,
+                audioDuration: src.audioDuration || 0
+            };
+            if (src.file) {
+                sourceFilePath = src.file.fsName;
+            }
+        }
+
+        var audioLevelsValue = null;
+        var audioLevelsKeyframes = [];
+        try {
+            var audioGroup = layer.property("Audio");
+            if (audioGroup) {
+                var levProp = null;
+                try { levProp = audioGroup.property("Audio Levels"); } catch (e) {}
+                if (!levProp) {
+                    for (var j = 1; j <= audioGroup.numProperties; j++) {
+                        var ap = audioGroup.property(j);
+                        if (ap.matchName === "ADBE Audio Levels" || ap.name === "Audio Levels") {
+                            levProp = ap; break;
+                        }
+                    }
+                }
+                if (levProp) {
+                    audioLevelsValue = levProp.value;
+                    for (var k = 1; k <= levProp.numKeys; k++) {
+                        audioLevelsKeyframes.push({
+                            index: k,
+                            timeInSeconds: levProp.keyTime(k),
+                            value: levProp.keyValue(k)
+                        });
+                    }
+                }
+            }
+        } catch (e) {}
+
+        var existingMarkers = [];
+        try {
+            var markerProp = layer.property("Marker");
+            if (markerProp) {
+                for (var m = 1; m <= markerProp.numKeys; m++) {
+                    var mv = markerProp.keyValue(m);
+                    existingMarkers.push({
+                        index: m,
+                        timeInSeconds: markerProp.keyTime(m),
+                        comment: mv.comment,
+                        duration: mv.duration,
+                        label: mv.label
+                    });
+                }
+            }
+        } catch (e) {}
+
+        return JSON.stringify({
+            status: "success",
+            composition: { name: comp.name, index: compIndex, frameRate: comp.frameRate },
+            layer: {
+                name: layer.name,
+                index: layer.index,
+                hasAudio: hasAudio,
+                audioEnabled: audioEnabled,
+                inPoint: layer.inPoint,
+                outPoint: layer.outPoint
+            },
+            source: sourceInfo,
+            sourceFilePath: sourceFilePath,
+            audioLevels: { currentValue: audioLevelsValue, keyframes: audioLevelsKeyframes },
+            existingMarkers: existingMarkers
+        }, null, 2);
+    } catch (error) {
+        return JSON.stringify({ status: "error", message: error.toString() }, null, 2);
+    }
+}
+
+function addMarkersFromArray(args) {
+    try {
+        var params = args || {};
+        var compIndex = params.compIndex || 1;
+        var comp = app.project.item(compIndex);
+        if (!comp || !(comp instanceof CompItem)) {
+            throw new Error("Composition not found at index " + compIndex);
+        }
+
+        var markers = params.markers;
+        if (!markers || !(markers instanceof Array) || markers.length === 0) {
+            throw new Error("markers must be a non-empty array of {timeInSeconds, comment?, duration?, label?} objects.");
+        }
+
+        var markerType = params.markerType || "layer";
+        var layer = null;
+
+        if (markerType === "layer") {
+            if (params.layerIndex !== undefined && params.layerIndex !== null) {
+                layer = comp.layer(params.layerIndex);
+                if (!layer) { throw new Error("Layer not found at index " + params.layerIndex); }
+            } else if (params.layerName) {
+                for (var i = 1; i <= comp.numLayers; i++) {
+                    if (comp.layer(i).name === params.layerName) { layer = comp.layer(i); break; }
+                }
+                if (!layer) { throw new Error("Layer not found with name '" + params.layerName + "'."); }
+            } else {
+                throw new Error("Provide layerIndex or layerName for layer markers, or set markerType to 'comp'.");
+            }
+        }
+
+        var added = [];
+        var errors = [];
+
+        for (var j = 0; j < markers.length; j++) {
+            try {
+                var spec = markers[j];
+                var timeInSeconds = Number(spec.timeInSeconds);
+                var mv = new MarkerValue(spec.comment || "");
+                mv.duration = (spec.duration !== undefined && spec.duration !== null) ? Number(spec.duration) : 0;
+                if (spec.chapter)  { mv.chapter = spec.chapter; }
+                if (spec.url)      { mv.url     = spec.url;     }
+                if (spec.label)    { mv.label   = Number(spec.label); }
+
+                if (markerType === "comp") {
+                    comp.markerProperty.setValueAtTime(timeInSeconds, mv);
+                } else {
+                    layer.property("Marker").setValueAtTime(timeInSeconds, mv);
+                }
+                added.push({ timeInSeconds: timeInSeconds, comment: spec.comment || "" });
+            } catch (e) {
+                errors.push({ index: j, timeInSeconds: markers[j].timeInSeconds, error: e.toString() });
+            }
+        }
+
+        return JSON.stringify({
+            status: "success",
+            message: "Bulk marker insertion complete",
+            addedCount: added.length,
+            errorCount: errors.length,
+            added: added,
+            errors: errors,
+            composition: { name: comp.name, index: compIndex },
+            layer: layer ? { name: layer.name, index: layer.index } : null
+        }, null, 2);
+    } catch (error) {
+        return JSON.stringify({ status: "error", message: error.toString() }, null, 2);
+    }
+}
+
 function addMarker(args) {
     try {
         var params = args || {};
@@ -2209,6 +2386,16 @@ function executeCommand(command, args) {
                 logToPanel("Calling getLayerClipFrames function...");
                 result = getLayerClipFrames(args);
                 logToPanel("Returned from getLayerClipFrames.");
+                break;
+            case "getLayerAudioInfo":
+                logToPanel("Calling getLayerAudioInfo function...");
+                result = getLayerAudioInfo(args);
+                logToPanel("Returned from getLayerAudioInfo.");
+                break;
+            case "addMarkersFromArray":
+                logToPanel("Calling addMarkersFromArray function...");
+                result = addMarkersFromArray(args);
+                logToPanel("Returned from addMarkersFromArray.");
                 break;
             case "addMarker":
                 logToPanel("Calling addMarker function...");
