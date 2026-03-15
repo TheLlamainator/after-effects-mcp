@@ -1350,45 +1350,6 @@ server.tool(
   }
 );
 
-server.tool(
-  "remove-effect",
-  "Remove a single effect from a layer, or remove all effects from that layer.",
-  {
-    compIndex: z.number().int().positive().describe("1-based index of the target composition in the project panel."),
-    layerIndex: z.number().int().positive().describe("1-based index of the target layer within the composition."),
-    effectIndex: z.number().int().positive().optional().describe("1-based index of the effect to remove."),
-    effectName: z.string().optional().describe("Display name of the effect to remove."),
-    effectMatchName: z.string().optional().describe("Internal matchName of the effect to remove."),
-    removeAll: z.boolean().optional().describe("If true, remove all effects from the layer.")
-  },
-  async (parameters) => {
-    try {
-      clearResultsFile();
-      writeCommandFile("removeLayerEffect", parameters);
-      const result = await waitForBridgeResult("removeLayerEffect", 7000, 250);
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: result
-          }
-        ]
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error removing effect: ${String(error)}`
-          }
-        ],
-        isError: true
-      };
-    }
-  }
-);
-
 // --- END NEW EFFECTS TOOLS ---
 
 // Add direct MCP function for applying effects
