@@ -1,25 +1,35 @@
 # After Effects MCP Server
 
-Model Context Protocol (MCP) server for Adobe After Effects. It lets AI clients and other MCP-compatible tools control After Effects through a file-based bridge panel.
+[![Node.js](https://img.shields.io/badge/node-18%2B-2ea44f)](https://nodejs.org/)
+[![After%20Effects](https://img.shields.io/badge/adobe-after%20effects-7A3FF2)](https://www.adobe.com/products/aftereffects.html)
+[![Build](https://img.shields.io/badge/build-passing-2ea44f)](#development)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## What You Can Do
+Control Adobe After Effects through MCP using a bridge panel running inside AE.
+This project is optimized for practical automation workflows: effects, presets, keyframing, markers, and audio-aware tooling.
 
-- Create and inspect compositions and layers.
-- Create text, shape, solid, and adjustment layers.
-- Set layer properties, keyframes, and expressions.
-- Apply effects by display name or matchName.
-- Inspect effect/property trees and edit effect properties.
-- Control effect keyframe graphs (easy ease, interpolation, temporal/spatial options, tangents, roving).
-- Apply `.ffx` presets.
-- Search and list presets on disk.
-- Remove individual effects or all effects from a layer.
-- Center layers in a composition.
-- Get clip start/end frame information for layers.
-- Add composition or layer markers.
-- Set audio levels per channel, with optional keyframes.
-- Inspect layer audio metadata and marker state.
-- Analyze WAV waveforms and bulk-add markers from detected peaks.
-- List all installed effects available in the current After Effects installation.
+---
+
+## Highlights
+
+- Full composition and layer automation.
+- Deep effect inspection and property editing.
+- Advanced effect graph controls (temporal + spatial).
+- Preset search/list/apply workflows.
+- Marker and audio automation, including waveform-to-marker pipelines.
+- Installed effect catalog discovery (`list-available-effects`).
+
+## Feature Matrix
+
+| Area | Capabilities |
+|---|---|
+| Composition | Create, inspect project/compositions, get clip frame ranges |
+| Layers | Text/shape/solid/adjustment creation, transform/property updates, centering |
+| Animation | Layer keyframes, expressions, effect keyframes with graph controls |
+| Effects | Apply by name/matchName, list layer effects recursively, edit any effect property, remove effects |
+| Presets | Apply `.ffx`, list/search preset libraries |
+| Markers | Add single marker (comp/layer), add markers in bulk |
+| Audio | Set channel levels, inspect audio metadata, analyze WAV waveform, detect peaks |
 
 ## Requirements
 
@@ -29,11 +39,11 @@ Model Context Protocol (MCP) server for Adobe After Effects. It lets AI clients 
 
 In After Effects, enable:
 
-- Edit -> Preferences -> Scripting & Expressions -> Allow Scripts to Write Files and Access Network
+- `Edit -> Preferences -> Scripting & Expressions -> Allow Scripts to Write Files and Access Network`
 
-## Installation
+## Quick Start
 
-1. Clone and install dependencies:
+1. Clone and install:
 
 ```bash
 git clone https://github.com/TheLlamainator/after-effects-mcp.git
@@ -41,28 +51,26 @@ cd after-effects-mcp
 npm install
 ```
 
-2. Build the server and bridge:
+2. Build:
 
 ```bash
 npm run build
 ```
 
-3. Install the bridge script to After Effects script folders:
+3. Install bridge script:
 
 ```bash
 npm run install-bridge
 ```
 
-4. Restart After Effects.
+4. Restart After Effects and open:
 
-5. Open the bridge panel:
+- `Window -> mcp-bridge-auto.jsx`
+- Keep this panel open during MCP usage.
 
-- Window -> mcp-bridge-auto.jsx
-- Keep the panel open while running MCP commands.
+## MCP Client Config
 
-## MCP Client Configuration
-
-Example config:
+Use an absolute path to `build/index.js`.
 
 ```json
 {
@@ -75,33 +83,143 @@ Example config:
 }
 ```
 
-Use an absolute path for `build/index.js` on your machine.
+## Add to VS Code
 
-## Core Workflow
+If you use an MCP-capable VS Code extension, add this server in that extension's MCP server settings.
 
-1. Start your MCP client (which starts this server).
-2. Open the AE bridge panel.
+Use:
+
+- command: `node`
+- args: `["<absolute-path-to-repo>/build/index.js"]`
+
+Example snippet many extensions accept:
+
+```json
+{
+  "mcpServers": {
+    "AfterEffectsMCP": {
+      "command": "node",
+      "args": ["C:\\Users\\<you>\\Documents\\Projects\\AEMCP\\build\\index.js"]
+    }
+  }
+}
+```
+
+Then:
+
+1. Restart VS Code.
+2. Open After Effects and keep `Window -> mcp-bridge-auto.jsx` open.
+3. Call a simple tool like `get-help` or `run-script` with `getProjectInfo`.
+
+## Add to Claude Desktop
+
+Edit Claude Desktop config and add the MCP server entry.
+
+Typical Windows config location:
+
+- `%APPDATA%\\Claude\\claude_desktop_config.json`
+
+Example:
+
+```json
+{
+  "mcpServers": {
+    "AfterEffectsMCP": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\Users\\<you>\\Documents\\Projects\\AEMCP\\build\\index.js"
+      ]
+    }
+  }
+}
+```
+
+After saving:
+
+1. Fully restart Claude Desktop.
+2. Open AE bridge panel.
+3. Verify with `tools/list` in logs or by calling a known tool.
+
+## Add to Claude Code
+
+Configure the same server command/args in your Claude Code MCP configuration.
+
+Use this server definition:
+
+```json
+{
+  "AfterEffectsMCP": {
+    "command": "node",
+    "args": ["<absolute-path-to-repo>/build/index.js"]
+  }
+}
+```
+
+Then:
+
+1. Restart Claude Code or reload MCP servers.
+2. Ensure After Effects is open with `mcp-bridge-auto.jsx` panel running.
+3. Test with `get-results` after a queued command.
+
+## Architecture Graph
+
+```mermaid
+flowchart LR
+    A[AI Client<br/>VS Code / Claude Desktop / Claude Code] --> B[MCP Server<br/>build/index.js]
+    B --> C[Bridge Files<br/>ae_command.json / ae_mcp_result.json]
+    C --> D[After Effects Bridge Panel<br/>mcp-bridge-auto.jsx]
+    D --> E[Adobe After Effects]
+    E --> D
+    D --> C
+    C --> B
+    B --> A
+```
+
+## Command Flow Graph
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant Server as MCP Server
+    participant Bridge as AE Bridge Panel
+    participant AE as After Effects
+
+    Client->>Server: tools/call (example: apply-effect)
+    Server->>Server: write ae_command.json
+    Server-->>Client: queued response (or waits)
+    Bridge->>Bridge: poll command file
+    Bridge->>AE: execute command
+    AE-->>Bridge: result/error
+    Bridge->>Bridge: write ae_mcp_result.json
+    Client->>Server: get-results
+    Server-->>Client: final result JSON
+```
+
+## Typical Runtime Flow
+
+1. Start your MCP client (it starts this server).
+2. Keep AE bridge panel open.
 3. Call tools.
-4. If a tool reports queued execution, call `get-results` after 1-3 seconds.
+4. If response says queued, call `get-results` after 1-3 seconds.
 
-Note: some operations complete just after timeout windows; `get-results` often contains the final result even when the first call timed out.
+Note: some AE operations finish slightly after tool timeout windows; `get-results` usually contains the final state.
 
 ## Tool Catalog
 
-General:
+### General
 
 - `run-script`
 - `get-results`
 - `get-help`
 
-Compositions/Layers:
+### Composition and Layer Utilities
 
 - `create-composition`
 - `create-adjustment-layer`
 - `center-layers`
 - `get-layer-clip-frames`
 
-Effects and presets:
+### Effects and Presets
 
 - `apply-effect`
 - `add-any-effect`
@@ -116,7 +234,7 @@ Effects and presets:
 - `list-presets`
 - `search-presets`
 
-Markers and audio:
+### Markers and Audio
 
 - `add-marker`
 - `add-markers-bulk`
@@ -124,24 +242,24 @@ Markers and audio:
 - `get-audio-info`
 - `analyze-audio-waveform`
 
-Testing/helpers:
+### Diagnostics and Helpers
 
 - `test-animation`
 - `run-bridge-test`
 - `mcp_aftereffects_get_effects_help`
 
-## Audio-to-Marker Workflow
+## Audio to Marker Workflow
 
-1. Call `get-audio-info` for the target layer.
-2. Copy `sourceFilePath` from the result.
-3. Call `analyze-audio-waveform` with `filePath` and optional `numPoints`.
-4. Build `markers[]` from returned `peakTimes`.
-5. Call `add-markers-bulk`.
+1. `get-audio-info` on target layer.
+2. Copy `sourceFilePath`.
+3. `analyze-audio-waveform` with optional `numPoints`.
+4. Convert `peakTimes` to `markers[]`.
+5. `add-markers-bulk`.
 
 ## Project Layout
 
 - `src/index.ts` - MCP server and tool definitions
-- `src/scripts/mcp-bridge-auto.jsx` - AE bridge panel script
+- `src/scripts/mcp-bridge-auto.jsx` - AE bridge panel
 - `install-bridge.js` - bridge installer
 
 ## Development
@@ -158,7 +276,7 @@ Install bridge:
 npm run install-bridge
 ```
 
-Start server directly:
+Run server directly:
 
 ```bash
 node build/index.js
@@ -166,26 +284,26 @@ node build/index.js
 
 ## Troubleshooting
 
-Server fails to start:
+### Server does not start
 
-- Rebuild with `npm run build`.
-- Check MCP client logs for duplicate tool registration errors.
+- Run `npm run build`.
+- Check MCP logs for startup exceptions (for example duplicate tool registration).
 
-Queued commands do not complete:
+### Commands queue but do not complete
 
 - Ensure AE bridge panel is open.
-- Ensure scripting/network access is enabled in AE preferences.
-- Call `get-results` after a short delay.
+- Confirm AE scripting/network permission is enabled.
+- Retry and call `get-results` after a short delay.
 
-Results appear stale:
+### Results appear stale
 
 - Reopen bridge panel.
-- Retry command and then call `get-results`.
+- Send a new command and then call `get-results`.
 
-Bridge install reports Program Files failure:
+### Program Files install fails
 
-- This is expected without elevated permissions.
-- User AppData script paths are typically enough for normal usage.
+- Expected without elevated permissions.
+- User AppData script paths are usually sufficient.
 
 ## License
 
