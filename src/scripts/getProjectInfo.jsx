@@ -1,5 +1,5 @@
-// getProjectInfo.jsx
-// Get information about the current After Effects project
+﻿
+
 
 function getProjectInfo() {
     var project = app.project;
@@ -12,7 +12,7 @@ function getProjectInfo() {
         items: []
     };
 
-    // Count item types
+    
     var countByType = {
         compositions: 0,
         footage: 0,
@@ -20,7 +20,7 @@ function getProjectInfo() {
         solids: 0
     };
 
-    // Get item information
+    
     for (var i = 1; i <= project.numItems; i++) {
         var item = project.item(i);
         var itemType = "";
@@ -50,7 +50,7 @@ function getProjectInfo() {
     
     result.itemCounts = countByType;
 
-    // Include active composition metadata if available
+    
     if (app.project.activeItem instanceof CompItem) {
         var ac = app.project.activeItem;
         result.activeComp = {
@@ -67,7 +67,7 @@ function getProjectInfo() {
     return JSON.stringify(result, null, 2);
 }
 
-// Read arguments from the file (passed by the Node.js script)
+
 var argsFile = new File($.fileName.replace(/[^\\\/]*$/, '') + "../temp/args.json");
 var args = {};
 if (argsFile.exists) {
@@ -78,13 +78,13 @@ if (argsFile.exists) {
         try {
             args = JSON.parse(content);
         } catch (e) {
-            // Handle parsing error
+            
         }
     }
 }
 
-// Run the function and write the result
+
 var result = getProjectInfo();
 
-// Write the result so it can be captured by the Node.js process
+
 $.write(result);

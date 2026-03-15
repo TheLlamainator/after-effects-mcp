@@ -1,11 +1,11 @@
-// getLayerInfo.jsx
-// Get detailed information about layers in a composition
+﻿
+
 
 function getLayerInfo() {
     var project = app.project;
     var compName = undefined;
     
-    // Read arguments from the file (passed by the Node.js script)
+    
     var argsFile = new File($.fileName.replace(/[^\\\/]*$/, '') + "../temp/args.json");
     var args = {};
     if (argsFile.exists) {
@@ -17,7 +17,7 @@ function getLayerInfo() {
                 args = JSON.parse(content);
                 compName = args.compositionName;
             } catch (e) {
-                // Handle parsing error
+                
             }
         }
     }
@@ -26,7 +26,7 @@ function getLayerInfo() {
         compositions: []
     };
     
-    // Find compositions and their layers
+    
     for (var i = 1; i <= project.numItems; i++) {
         var item = project.item(i);
         if (item instanceof CompItem && (!compName || item.name === compName)) {
@@ -40,7 +40,7 @@ function getLayerInfo() {
                 layers: []
             };
             
-            // Process layers in the composition
+            
             for (var j = 1; j <= item.numLayers; j++) {
                 var layer = item.layer(j);
                 var layerData = {
@@ -69,7 +69,7 @@ function getLayerInfo() {
             result.compositions.push(compData);
             
             if (compName) {
-                break; // If we found the specific comp, no need to continue
+                break; 
             }
         }
     }
@@ -99,7 +99,7 @@ function determineLayerType(layer) {
                 return "Audio";
             }
             
-            // Check file extension for image types
+            
             var fileName = layer.source.file.name.toLowerCase();
             if (/\.(png|jpg|jpeg|gif|tiff|tif|bmp|psd|ai|eps)$/.test(fileName)) {
                 return "Image";
@@ -150,7 +150,7 @@ function getEffects(layer) {
 function getKeyProperties(layer) {
     var properties = [];
     
-    // Common properties to check
+    
     var propNames = [
         "Opacity", "Position", "Scale", "Rotation",
         "Anchor Point", "Transform", "Effects"
@@ -178,15 +178,15 @@ function getKeyProperties(layer) {
                 });
             }
         } catch (e) {
-            // Skip properties that don't exist or can't be accessed
+            
         }
     }
     
     return properties;
 }
 
-// Run the function and write the result
+
 var result = getLayerInfo();
 
-// Write the result so it can be captured by the Node.js process
+
 $.write(result);

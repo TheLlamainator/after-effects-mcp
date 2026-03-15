@@ -1,18 +1,12 @@
-// mcp-bridge-auto.jsx
-// Auto-running MCP Bridge panel for After Effects
+﻿
 
-// Remove #include directives as we define functions below
-/*
-#include "createComposition.jsx"
-#include "createTextLayer.jsx"
-#include "createShapeLayer.jsx"
-#include "createSolidLayer.jsx"
-#include "setLayerProperties.jsx"
-*/
 
-// --- Function Definitions ---
 
-// --- createComposition (from createComposition.jsx) --- 
+
+
+
+
+
 function createComposition(args) {
     try {
         var name = args.name || "New Composition";
@@ -35,7 +29,7 @@ function createComposition(args) {
     }
 }
 
-// --- createTextLayer (from createTextLayer.jsx) ---
+
 function createTextLayer(args) {
     try {
         var compName = args.compName || "";
@@ -78,7 +72,7 @@ function createTextLayer(args) {
     }
 }
 
-// --- createShapeLayer (from createShapeLayer.jsx) --- 
+
 function createShapeLayer(args) {
     try {
         var compName = args.compName || "";
@@ -141,7 +135,7 @@ function createShapeLayer(args) {
     }
 }
 
-// --- createSolidLayer (from createSolidLayer.jsx) --- 
+
 function createSolidLayer(args) {
     try {
         var compName = args.compName || "";
@@ -181,14 +175,14 @@ function createSolidLayer(args) {
     }
 }
 
-// --- setLayerProperties (modified to handle text properties) ---
+
 function setLayerProperties(args) {
     try {
         var compName = args.compName || "";
         var layerName = args.layerName || "";
         var layerIndex = args.layerIndex; 
         
-        // General Properties
+        
         var position = args.position; 
         var scale = args.scale; 
         var rotation = args.rotation; 
@@ -196,13 +190,13 @@ function setLayerProperties(args) {
         var startTime = args.startTime; 
         var duration = args.duration; 
 
-        // Text Specific Properties
-        var textContent = args.text; // New: text content
-        var fontFamily = args.fontFamily; // New: font family
-        var fontSize = args.fontSize; // New: font size
-        var fillColor = args.fillColor; // New: font color
         
-        // Find the composition (same logic as before)
+        var textContent = args.text; 
+        var fontFamily = args.fontFamily; 
+        var fontSize = args.fontSize; 
+        var fillColor = args.fillColor; 
+        
+        
         var comp = null;
         for (var i = 1; i <= app.project.numItems; i++) {
             var item = app.project.item(i);
@@ -213,7 +207,7 @@ function setLayerProperties(args) {
             else { throw new Error("No composition found with name '" + compName + "' and no active composition"); }
         }
         
-        // Find the layer (same logic as before)
+        
         var layer = null;
         if (layerIndex !== undefined && layerIndex !== null) {
             if (layerIndex > 0 && layerIndex <= comp.numLayers) { layer = comp.layer(layerIndex); } 
@@ -230,11 +224,11 @@ function setLayerProperties(args) {
         var textProp = null;
         var textDocument = null;
 
-        // --- Text Property Handling ---
+        
         if (layer instanceof TextLayer && (textContent !== undefined || fontFamily !== undefined || fontSize !== undefined || fillColor !== undefined)) {
             var sourceTextProp = layer.property("Source Text");
             if (sourceTextProp && sourceTextProp.value) {
-                var currentTextDocument = sourceTextProp.value; // Get the current value
+                var currentTextDocument = sourceTextProp.value; 
                 var updated = false;
 
                 if (textContent !== undefined && textContent !== null && currentTextDocument.text !== textContent) {
@@ -243,8 +237,8 @@ function setLayerProperties(args) {
                     updated = true;
                 }
                 if (fontFamily !== undefined && fontFamily !== null && currentTextDocument.font !== fontFamily) {
-                    // Add basic validation/logging for font existence if needed
-                    // try { app.fonts.findFont(fontFamily); } catch (e) { logToPanel("Warning: Font '"+fontFamily+"' might not be installed."); }
+                    
+                    
                     currentTextDocument.font = fontFamily;
                     changedProperties.push("fontFamily");
                     updated = true;
@@ -254,8 +248,8 @@ function setLayerProperties(args) {
                     changedProperties.push("fontSize");
                     updated = true;
                 }
-                // Comparing colors needs care due to potential floating point inaccuracies if set via UI
-                // Simple comparison for now
+                
+                
                 if (fillColor !== undefined && fillColor !== null && 
                     (currentTextDocument.fillColor[0] !== fillColor[0] || 
                      currentTextDocument.fillColor[1] !== fillColor[1] || 
@@ -265,18 +259,18 @@ function setLayerProperties(args) {
                     updated = true;
                 }
 
-                // Only set the value if something actually changed
+                
                 if (updated) {
                     try {
                         sourceTextProp.setValue(currentTextDocument);
                         logToPanel("Applied changes to Text Document for layer: " + layer.name);
                     } catch (e) {
                         logToPanel("ERROR applying Text Document changes: " + e.toString());
-                        // Decide if we should throw or just log the error for text properties
-                        // For now, just log, other properties might still succeed
+                        
+                        
                     }
                 }
-                 // Store the potentially updated document for the return value
+                 
                  textDocument = currentTextDocument; 
 
             } else {
@@ -284,12 +278,12 @@ function setLayerProperties(args) {
             }
         }
 
-        // --- General Property Handling ---
+        
         if (position !== undefined && position !== null) { layer.property("Position").setValue(position); changedProperties.push("position"); }
         if (scale !== undefined && scale !== null) { layer.property("Scale").setValue(scale); changedProperties.push("scale"); }
         if (rotation !== undefined && rotation !== null) {
             if (layer.threeDLayer) { 
-                // For 3D layers, Z rotation is often what's intended by a single value
+                
                 layer.property("Z Rotation").setValue(rotation);
             } else { 
                 layer.property("Rotation").setValue(rotation); 
@@ -304,19 +298,19 @@ function setLayerProperties(args) {
             changedProperties.push("duration");
         }
 
-        // Return success with updated layer details (including text if changed)
+        
         var returnLayerInfo = {
             name: layer.name,
             index: layer.index,
             position: layer.property("Position").value,
             scale: layer.property("Scale").value,
-            rotation: layer.threeDLayer ? layer.property("Z Rotation").value : layer.property("Rotation").value, // Return appropriate rotation
+            rotation: layer.threeDLayer ? layer.property("Z Rotation").value : layer.property("Rotation").value, 
             opacity: layer.property("Opacity").value,
             inPoint: layer.inPoint,
             outPoint: layer.outPoint,
             changedProperties: changedProperties
         };
-        // Add text properties to the return object if it was a text layer
+        
         if (layer instanceof TextLayer && textDocument) {
             returnLayerInfo.text = textDocument.text;
             returnLayerInfo.fontFamily = textDocument.font;
@@ -324,7 +318,7 @@ function setLayerProperties(args) {
             returnLayerInfo.fillColor = textDocument.fillColor;
         }
 
-        // *** ADDED LOGGING HERE ***
+        
         logToPanel("Final check before return:");
         logToPanel("  Changed Properties: " + changedProperties.join(", "));
         logToPanel("  Return Layer Info Font: " + (returnLayerInfo.fontFamily || "N/A")); 
@@ -335,7 +329,7 @@ function setLayerProperties(args) {
             layer: returnLayerInfo
         }, null, 2);
     } catch (error) {
-        // Error handling remains similar, but add more specific checks if needed
+        
         return JSON.stringify({ status: "error", message: error.toString() }, null, 2);
     }
 }
@@ -354,17 +348,17 @@ function coerceScriptValue(rawValue) {
         return rawValue;
     }
 
-    // Parse JSON-like payloads first (arrays/objects/quoted scalars/booleans/null)
+    
     var firstChar = trimmed.charAt(0);
     if (firstChar === "[" || firstChar === "{" || firstChar === '"' || trimmed === "true" || trimmed === "false" || trimmed === "null") {
         try {
             return JSON.parse(trimmed);
         } catch (e) {
-            // fall through
+            
         }
     }
 
-    // Parse numeric scalar strings
+    
     if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
         return parseFloat(trimmed);
     }
@@ -372,19 +366,10 @@ function coerceScriptValue(rawValue) {
     return rawValue;
 }
 
-/**
- * Sets a keyframe for a specific property on a layer.
- * Indices are 1-based for After Effects collections.
- * @param {number} compIndex - The index of the composition (1-based).
- * @param {number} layerIndex - The index of the layer within the composition (1-based).
- * @param {string} propertyName - The name of the property (e.g., "Position", "Scale", "Rotation", "Opacity").
- * @param {number} timeInSeconds - The time (in seconds) for the keyframe.
- * @param {any} value - The value for the keyframe (e.g., [x, y] for Position, [w, h] for Scale, angle for Rotation, percentage for Opacity).
- * @returns {string} JSON string indicating success or error.
- */
+
 function setLayerKeyframe(compIndex, layerIndex, propertyName, timeInSeconds, value) {
     try {
-        // Use 1-based indices as per After Effects API
+        
         var comp = app.project.items[compIndex];
         if (!comp || !(comp instanceof CompItem)) {
             return JSON.stringify({ success: false, message: "Composition not found at index " + compIndex });
@@ -401,12 +386,12 @@ function setLayerKeyframe(compIndex, layerIndex, propertyName, timeInSeconds, va
 
         var property = transformGroup.property(propertyName);
         if (!property) {
-            // Check other common property groups if not in Transform
+            
              if (layer.property("Effects") && layer.property("Effects").property(propertyName)) {
                  property = layer.property("Effects").property(propertyName);
              } else if (layer.property("Text") && layer.property("Text").property(propertyName)) {
                  property = layer.property("Text").property(propertyName);
-            } // Add more groups if needed (e.g., Masks, Shapes)
+            } 
 
             if (!property) {
                  return JSON.stringify({ success: false, message: "Property '" + propertyName + "' not found on layer '" + layer.name + "'." });
@@ -414,14 +399,14 @@ function setLayerKeyframe(compIndex, layerIndex, propertyName, timeInSeconds, va
         }
 
 
-        // Ensure the property can be keyframed
+        
         if (!property.canVaryOverTime) {
              return JSON.stringify({ success: false, message: "Property '" + propertyName + "' cannot be keyframed." });
         }
 
-        // Make sure the property is enabled for keyframing
+        
         if (property.numKeys === 0 && !property.isTimeVarying) {
-             property.setValueAtTime(comp.time, property.value); // Set initial keyframe if none exist
+             property.setValueAtTime(comp.time, property.value); 
         }
 
 
@@ -435,17 +420,10 @@ function setLayerKeyframe(compIndex, layerIndex, propertyName, timeInSeconds, va
 }
 
 
-/**
- * Sets an expression for a specific property on a layer.
- * @param {number} compIndex - The index of the composition (1-based).
- * @param {number} layerIndex - The index of the layer within the composition (1-based).
- * @param {string} propertyName - The name of the property (e.g., "Position", "Scale", "Rotation", "Opacity").
- * @param {string} expressionString - The JavaScript expression string. Use "" to remove expression.
- * @returns {string} JSON string indicating success or error.
- */
+
 function setLayerExpression(compIndex, layerIndex, propertyName, expressionString) {
     try {
-         // Adjust indices to be 0-based for ExtendScript arrays
+         
         var comp = app.project.items[compIndex];
          if (!comp || !(comp instanceof CompItem)) {
             return JSON.stringify({ success: false, message: "Composition not found at index " + compIndex });
@@ -457,18 +435,18 @@ function setLayerExpression(compIndex, layerIndex, propertyName, expressionStrin
 
         var transformGroup = layer.property("Transform");
          if (!transformGroup) {
-             // Allow expressions on non-transformable layers if property exists elsewhere
-             // return JSON.stringify({ success: false, message: "Transform properties not found for layer '" + layer.name + "' (type: " + layer.matchName + ")." });
+             
+             
         }
 
         var property = transformGroup ? transformGroup.property(propertyName) : null;
          if (!property) {
-            // Check other common property groups if not in Transform
+            
              if (layer.property("Effects") && layer.property("Effects").property(propertyName)) {
                  property = layer.property("Effects").property(propertyName);
              } else if (layer.property("Text") && layer.property("Text").property(propertyName)) {
                  property = layer.property("Text").property(propertyName);
-             } // Add more groups if needed
+             } 
 
             if (!property) {
                  return JSON.stringify({ success: false, message: "Property '" + propertyName + "' not found on layer '" + layer.name + "'." });
@@ -537,30 +515,30 @@ function addEffectByAnyIdentifier(layer, effectIdentifier, effectName, effectMat
     return null;
 }
 
-// --- applyEffect (from applyEffect.jsx) ---
+
 function applyEffect(args) {
     try {
-        // Extract parameters
-        var compIndex = args.compIndex || 1; // Default to first comp
-        var layerIndex = args.layerIndex || 1; // Default to first layer
-        var effectIdentifier = args.effect || args.effectIdentifier; // Generic identifier: display name or matchName
-        var effectName = args.effectName; // Name of the effect to apply
-        var effectMatchName = args.effectMatchName; // After Effects internal name (more reliable)
-        var effectCategory = args.effectCategory || ""; // Optional category for filtering
-        var presetPath = args.presetPath; // Optional path to an effect preset
-        var effectSettings = args.effectSettings || {}; // Optional effect parameters
+        
+        var compIndex = args.compIndex || 1; 
+        var layerIndex = args.layerIndex || 1; 
+        var effectIdentifier = args.effect || args.effectIdentifier; 
+        var effectName = args.effectName; 
+        var effectMatchName = args.effectMatchName; 
+        var effectCategory = args.effectCategory || ""; 
+        var presetPath = args.presetPath; 
+        var effectSettings = args.effectSettings || {}; 
         
         if (!effectIdentifier && !effectName && !effectMatchName && !presetPath) {
             throw new Error("You must specify effect, effectIdentifier, effectName, effectMatchName, or presetPath");
         }
         
-        // Find the composition by index
+        
         var comp = app.project.item(compIndex);
         if (!comp || !(comp instanceof CompItem)) {
             throw new Error("Composition not found at index " + compIndex);
         }
         
-        // Find the layer by index
+        
         var layer = comp.layer(layerIndex);
         if (!layer) {
             throw new Error("Layer not found at index " + layerIndex + " in composition '" + comp.name + "'");
@@ -568,14 +546,14 @@ function applyEffect(args) {
         
         var effectResult;
         
-        // Apply preset if a path is provided
+        
         if (presetPath) {
             var presetFile = new File(presetPath);
             if (!presetFile.exists) {
                 throw new Error("Effect preset file not found: " + presetPath);
             }
             
-            // Apply the preset to the layer
+            
             layer.applyPreset(presetFile);
             effectResult = {
                 type: "preset",
@@ -583,7 +561,7 @@ function applyEffect(args) {
                 applied: true
             };
         }
-        // Apply effect by match name (more reliable method)
+        
         else if (effectMatchName || effectName || effectIdentifier) {
             var added = addEffectByAnyIdentifier(layer, effectIdentifier, effectName, effectMatchName);
             if (!added || !added.effect) {
@@ -599,7 +577,7 @@ function applyEffect(args) {
                 resolvedBy: added.resolvedBy
             };
             
-            // Apply settings if provided
+            
             applyEffectSettings(effect, effectSettings);
         }
         
@@ -624,9 +602,9 @@ function applyEffect(args) {
     }
 }
 
-// Helper function to apply effect settings
+
 function applyEffectSettings(effect, settings) {
-    // Skip if no settings are provided
+    
     var hasAnySetting = false;
     if (!settings) {
         return;
@@ -641,18 +619,18 @@ function applyEffectSettings(effect, settings) {
         return;
     }
     
-    // Iterate through all provided settings
+    
     for (var propName in settings) {
         if (settings.hasOwnProperty(propName)) {
             try {
-                // Find the property in the effect
+                
                 var property = null;
                 
-                // Try direct property access first
+                
                 try {
                     property = effect.property(propName);
                 } catch (e) {
-                    // If direct access fails, search through all properties
+                    
                     for (var i = 1; i <= effect.numProperties; i++) {
                         var prop = effect.property(i);
                         if (prop.name === propName) {
@@ -662,12 +640,12 @@ function applyEffectSettings(effect, settings) {
                     }
                 }
                 
-                // Set the property value if found
+                
                 if (property && property.setValue) {
                     property.setValue(coerceScriptValue(settings[propName]));
                 }
             } catch (e) {
-                // Log error but continue with other properties
+                
                 $.writeln("Error setting effect property '" + propName + "': " + e.toString());
             }
         }
@@ -984,7 +962,7 @@ function getPropertyDimensionCount(property) {
             return value.length;
         }
     } catch (e) {
-        // Some properties may not expose value directly.
+        
     }
     return 1;
 }
@@ -1035,7 +1013,7 @@ function buildEaseArrayFromSpec(dimensionCount, spec, fallbackSpeed, fallbackInf
 function getKeyframeOptionsFromArgs(args) {
     var options = args.keyframeOptions || {};
 
-    // Backward-compatible aliases at the top level.
+    
     if (args.easyEase !== undefined) {
         options.easyEase = args.easyEase;
     }
@@ -1122,7 +1100,7 @@ function applyKeyframeGraphOptions(property, keyIndex, options) {
         try {
             property.setRovingAtKey(keyIndex, !!options.roving);
         } catch (e) {
-            // Roving is not supported on all properties.
+            
         }
     }
 
@@ -1138,7 +1116,7 @@ function applyKeyframeGraphOptions(property, keyIndex, options) {
             }
             property.setSpatialTangentsAtKey(keyIndex, inTangent, outTangent);
         } catch (e) {
-            // Not a spatial property or unsupported operation.
+            
         }
     }
 
@@ -1146,7 +1124,7 @@ function applyKeyframeGraphOptions(property, keyIndex, options) {
         try {
             property.setSpatialContinuousAtKey(keyIndex, !!options.spatialContinuous);
         } catch (e) {
-            // Not a spatial property or unsupported operation.
+            
         }
     }
 
@@ -1154,7 +1132,7 @@ function applyKeyframeGraphOptions(property, keyIndex, options) {
         try {
             property.setSpatialAutoBezierAtKey(keyIndex, !!options.spatialAutoBezier);
         } catch (e) {
-            // Not a spatial property or unsupported operation.
+            
         }
     }
 }
@@ -1746,7 +1724,7 @@ function addMarker(args) {
         if (url)      { markerVal.url        = url;      }
         if (label)    { markerVal.label      = label;    }
 
-        var markerType = params.markerType || "layer"; // "layer" or "comp"
+        var markerType = params.markerType || "layer"; 
 
         if (markerType === "comp") {
             comp.markerProperty.setValueAtTime(timeInSeconds, markerVal);
@@ -1758,7 +1736,7 @@ function addMarker(args) {
             }, null, 2);
         }
 
-        // Layer marker
+        
         var layer = null;
         if (params.layerIndex !== undefined && params.layerIndex !== null) {
             layer = comp.layer(params.layerIndex);
@@ -1798,7 +1776,7 @@ function setLayerAudioLevels(args) {
             throw new Error("Layer '" + layer.name + "' has no Audio property. Ensure it is an audio or AV layer.");
         }
 
-        // Try by name then by match name
+        
         var audioLevelsProp = null;
         try { audioLevelsProp = audioGroup.property("Audio Levels"); } catch (e) {}
         if (!audioLevelsProp) {
@@ -1909,34 +1887,34 @@ function removeLayerEffect(args) {
     }
 }
 
-// --- applyEffectTemplate (from applyEffectTemplate.jsx) ---
+
 function applyEffectTemplate(args) {
     try {
-        // Extract parameters
-        var compIndex = args.compIndex || 1; // Default to first comp
-        var layerIndex = args.layerIndex || 1; // Default to first layer
-        var templateName = args.templateName; // Name of the template to apply
-        var customSettings = args.customSettings || {}; // Optional customizations
+        
+        var compIndex = args.compIndex || 1; 
+        var layerIndex = args.layerIndex || 1; 
+        var templateName = args.templateName; 
+        var customSettings = args.customSettings || {}; 
         
         if (!templateName) {
             throw new Error("You must specify a templateName");
         }
         
-        // Find the composition by index
+        
         var comp = app.project.item(compIndex);
         if (!comp || !(comp instanceof CompItem)) {
             throw new Error("Composition not found at index " + compIndex);
         }
         
-        // Find the layer by index
+        
         var layer = comp.layer(layerIndex);
         if (!layer) {
             throw new Error("Layer not found at index " + layerIndex + " in composition '" + comp.name + "'");
         }
         
-        // Template definitions
+        
         var templates = {
-            // Blur effects
+            
             "gaussian-blur": {
                 effectMatchName: "ADBE Gaussian Blur 2",
                 settings: {
@@ -1951,7 +1929,7 @@ function applyEffectTemplate(args) {
                 }
             },
             
-            // Color correction effects
+            
             "color-balance": {
                 effectMatchName: "ADBE Color Balance (HLS)",
                 settings: {
@@ -1970,10 +1948,10 @@ function applyEffectTemplate(args) {
             },
             "curves": {
                 effectMatchName: "ADBE CurvesCustom",
-                // Curves are complex and would need special handling
+                
             },
             
-            // Stylistic effects
+            
             "glow": {
                 effectMatchName: "ADBE Glow",
                 settings: {
@@ -1993,7 +1971,7 @@ function applyEffectTemplate(args) {
                 }
             },
             
-            // Common effect chains
+            
             "cinematic-look": {
                 effects: [
                     {
@@ -2032,7 +2010,7 @@ function applyEffectTemplate(args) {
             }
         };
         
-        // Check if the requested template exists
+        
         var template = templates[templateName];
         if (!template) {
             var templateNames = [];
@@ -2047,12 +2025,12 @@ function applyEffectTemplate(args) {
         
         var appliedEffects = [];
         
-        // Apply single effect or multiple effects based on template structure
+        
         if (template.effectMatchName) {
-            // Single effect template
+            
             var effect = layer.Effects.addProperty(template.effectMatchName);
             
-            // Apply settings
+            
             for (var propName in template.settings) {
                 try {
                     var property = effect.property(propName);
@@ -2069,12 +2047,12 @@ function applyEffectTemplate(args) {
                 matchName: effect.matchName
             });
         } else if (template.effects) {
-            // Multiple effects template
+            
             for (var i = 0; i < template.effects.length; i++) {
                 var effectData = template.effects[i];
                 var effect = layer.Effects.addProperty(effectData.effectMatchName);
                 
-                // Apply settings
+                
                 for (var propName in effectData.settings) {
                     try {
                         var property = effect.property(propName);
@@ -2114,15 +2092,15 @@ function applyEffectTemplate(args) {
     }
 }
 
-// --- End of Function Definitions ---
 
-// --- Bridge test function to verify communication and effects application ---
+
+
 function bridgeTestEffects(args) {
     try {
         var compIndex = (args && args.compIndex) ? args.compIndex : 1;
         var layerIndex = (args && args.layerIndex) ? args.layerIndex : 1;
 
-        // Apply a light Gaussian Blur
+        
         var blurRes = JSON.parse(applyEffect({
             compIndex: compIndex,
             layerIndex: layerIndex,
@@ -2130,7 +2108,7 @@ function bridgeTestEffects(args) {
             effectSettings: { "Blurriness": 5 }
         }));
 
-        // Apply a simple drop shadow via template
+        
         var shadowRes = JSON.parse(applyEffectTemplate({
             compIndex: compIndex,
             layerIndex: layerIndex,
@@ -2147,13 +2125,13 @@ function bridgeTestEffects(args) {
     }
 }
 
-// JSON polyfill for ExtendScript (when JSON is undefined)
+
 if (typeof JSON === "undefined") {
     JSON = {};
 }
 if (typeof JSON.parse !== "function") {
     JSON.parse = function (text) {
-        // Safe-ish fallback for trusted input (our own command file)
+        
         return eval("(" + text + ")");
     };
 }
@@ -2193,44 +2171,28 @@ if (typeof JSON.stringify !== "function") {
         };
     })();
 }
-
-// Detect AE version (AE 2025 = version 25.x, AE 2026 = version 26.x)
 var aeVersion = parseFloat(app.version);
 var isAE2025OrLater = aeVersion >= 25.0;
-
-// Always create a floating palette window for AE 2025+
 var panel = new Window("palette", "MCP Bridge Auto", undefined);
 panel.orientation = "column";
 panel.alignChildren = ["fill", "top"];
 panel.spacing = 10;
 panel.margins = 16;
-
-// Status display
 var statusText = panel.add("statictext", undefined, "Waiting for commands...");
 statusText.alignment = ["fill", "top"];
-
-// Add log area
 var logPanel = panel.add("panel", undefined, "Command Log");
 logPanel.orientation = "column";
 logPanel.alignChildren = ["fill", "fill"];
 var logText = logPanel.add("edittext", undefined, "", {multiline: true, readonly: true});
 logText.preferredSize.height = 200;
-
-// AE 2025 warning
 if (isAE2025OrLater) {
     var warning = panel.add("statictext", undefined, "AE 2025+: Dockable panels are not supported. Floating window only.");
     warning.graphics.foregroundColor = warning.graphics.newPen(warning.graphics.PenType.SOLID_COLOR, [1,0.3,0,1], 1);
 }
-
-// Auto-run checkbox
 var autoRunCheckbox = panel.add("checkbox", undefined, "Auto-run commands");
 autoRunCheckbox.value = true;
-
-// Check interval (ms)
 var checkInterval = 2000;
 var isChecking = false;
-
-// Command file path - use Documents folder for reliable access
 function getCommandFilePath() {
     var userFolder = Folder.myDocuments;
     var bridgeFolder = new Folder(userFolder.fsName + "/ae-mcp-bridge");
@@ -2239,8 +2201,6 @@ function getCommandFilePath() {
     }
     return bridgeFolder.fsName + "/ae_command.json";
 }
-
-// Result file path - use Documents folder for reliable access
 function getResultFilePath() {
     var userFolder = Folder.myDocuments;
     var bridgeFolder = new Folder(userFolder.fsName + "/ae-mcp-bridge");
@@ -2249,8 +2209,6 @@ function getResultFilePath() {
     }
     return bridgeFolder.fsName + "/ae_mcp_result.json";
 }
-
-// Functions for each script type
 function getProjectInfo() {
     var project = app.project;
     var result = {
@@ -2261,16 +2219,12 @@ function getProjectInfo() {
         timeMode: project.timeDisplayType === TimeDisplayType.FRAMES ? "Frames" : "Timecode",
         items: []
     };
-
-    // Count item types
     var countByType = {
         compositions: 0,
         footage: 0,
         folders: 0,
         solids: 0
     };
-
-    // Get item information (limited for performance)
     for (var i = 1; i <= Math.min(project.numItems, 50); i++) {
         var item = project.item(i);
         var itemType = "";
@@ -2299,8 +2253,6 @@ function getProjectInfo() {
     }
     
     result.itemCounts = countByType;
-
-    // Include active composition metadata if available
     if (app.project.activeItem instanceof CompItem) {
         var ac = app.project.activeItem;
         result.activeComp = {
@@ -2322,12 +2274,8 @@ function listCompositions() {
     var result = {
         compositions: []
     };
-    
-    // Loop through items in the project
     for (var i = 1; i <= project.numItems; i++) {
         var item = project.item(i);
-        
-        // Check if the item is a composition
         if (item instanceof CompItem) {
             result.compositions.push({
                 id: item.id,
@@ -2349,16 +2297,12 @@ function getLayerInfo() {
     var result = {
         layers: []
     };
-    
-    // Get the active composition
     var activeComp = null;
     if (app.project.activeItem instanceof CompItem) {
         activeComp = app.project.activeItem;
     } else {
         return JSON.stringify({ error: "No active composition" }, null, 2);
     }
-    
-    // Loop through layers in the active composition
     for (var i = 1; i <= activeComp.numLayers; i++) {
         var layer = activeComp.layer(i);
         var layerInfo = {
@@ -2375,8 +2319,6 @@ function getLayerInfo() {
     
     return JSON.stringify(result, null, 2);
 }
-
-// Execute command
 function executeCommand(command, args) {
     var result = "";
     
@@ -2386,7 +2328,6 @@ function executeCommand(command, args) {
     
     try {
         logToPanel("Attempting to execute: " + command); // Log before switch
-        // Use a switch statement for clarity
         switch (command) {
             case "getProjectInfo":
                 result = getProjectInfo();
@@ -2516,27 +2457,22 @@ function executeCommand(command, args) {
                 result = JSON.stringify({ error: "Unknown command: " + command });
         }
         logToPanel("Execution finished for: " + command); // Log after switch
-        
-        // Save the result (ensure result is always a string)
         logToPanel("Preparing to write result file...");
         var resultString = (typeof result === 'string') ? result : JSON.stringify(result);
-        
-        // Try to parse the result as JSON to add a timestamp
         try {
             var resultObj = JSON.parse(resultString);
-            // Add a timestamp to help identify if we're getting fresh results
             resultObj._responseTimestamp = new Date().toISOString();
             resultObj._commandExecuted = command;
             resultString = JSON.stringify(resultObj, null, 2);
             logToPanel("Added timestamp to result JSON for tracking freshness.");
         } catch (parseError) {
-            // If it's not valid JSON, append the timestamp as a comment
+            
             logToPanel("Could not parse result as JSON to add timestamp: " + parseError.toString());
-            // We'll still continue with the original string
+            
         }
         
         var resultFile = new File(getResultFilePath());
-        resultFile.encoding = "UTF-8"; // Ensure UTF-8 encoding
+        resultFile.encoding = "UTF-8"; 
         logToPanel("Opening result file for writing...");
         var opened = resultFile.open("w");
         if (!opened) {
@@ -2547,30 +2483,30 @@ function executeCommand(command, args) {
         var written = resultFile.write(resultString);
         if (!written) {
              logToPanel("ERROR: Failed to write to result file (write returned false): " + resultFile.fsName);
-             // Still try to close, but log the error
+             
         }
         logToPanel("Closing result file...");
         var closed = resultFile.close();
          if (!closed) {
              logToPanel("ERROR: Failed to close result file: " + resultFile.fsName);
-             // Continue, but log the error
+             
         }
         logToPanel("Result file write process complete.");
         
-        logToPanel("Command completed successfully: " + command); // Changed log message
+        logToPanel("Command completed successfully: " + command); 
         statusText.text = "Command completed: " + command;
         
-        // Update command file status
+        
         logToPanel("Updating command status to completed...");
         updateCommandStatus("completed");
         logToPanel("Command status updated.");
         
     } catch (error) {
         var errorMsg = "ERROR in executeCommand for '" + command + "': " + error.toString() + (error.line ? " (line: " + error.line + ")" : "");
-        logToPanel(errorMsg); // Log detailed error
+        logToPanel(errorMsg); 
         statusText.text = "Error: " + error.toString();
         
-        // Write detailed error to result file
+        
         try {
             logToPanel("Attempting to write ERROR to result file...");
             var errorResult = JSON.stringify({ 
@@ -2593,14 +2529,14 @@ function executeCommand(command, args) {
              logToPanel("CRITICAL ERROR: Failed to write error to result file: " + writeError.toString());
         }
         
-        // Update command file status even after error
+        
         logToPanel("Updating command status to error...");
         updateCommandStatus("error");
         logToPanel("Command status updated to error.");
     }
 }
 
-// Update command file status
+
 function updateCommandStatus(status) {
     try {
         var commandFile = new File(getCommandFilePath());
@@ -2623,13 +2559,13 @@ function updateCommandStatus(status) {
     }
 }
 
-// Log message to panel
+
 function logToPanel(message) {
     var timestamp = new Date().toLocaleTimeString();
     logText.text = timestamp + ": " + message + "\n" + logText.text;
 }
 
-// Check for new commands
+
 function checkForCommands() {
     if (!autoRunCheckbox.value || isChecking) return;
     
@@ -2647,12 +2583,12 @@ function checkForCommands() {
                     ? JSON.parse(content)
                     : eval("(" + content + ")");
                 
-                // Only execute pending commands
+                
                 if (commandData.status === "pending") {
-                    // Update status to running
+                    
                     updateCommandStatus("running");
                     
-                    // Execute the command
+                    
                     executeCommand(commandData.command, commandData.args || {});
                 }
             }
@@ -2664,26 +2600,27 @@ function checkForCommands() {
     isChecking = false;
 }
 
-// Set up timer to check for commands
+
 function startCommandChecker() {
     app.scheduleTask("checkForCommands()", checkInterval, true);
 }
 
-// Add manual check button
+
 var checkButton = panel.add("button", undefined, "Check for Commands Now");
 checkButton.onClick = function() {
     logToPanel("Manually checking for commands");
     checkForCommands();
 };
 
-// Log startup
+
 logToPanel("MCP Bridge Auto started");
 logToPanel("Command file: " + getCommandFilePath());
 statusText.text = "Ready - Auto-run is " + (autoRunCheckbox.value ? "ON" : "OFF");
 
-// Start the command checker
+
 startCommandChecker();
 
-// Show the panel
+
 panel.center();
 panel.show();
+

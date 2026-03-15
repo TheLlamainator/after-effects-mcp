@@ -1,19 +1,19 @@
-// createSolidLayer.jsx
-// Creates a new solid layer in the specified composition
+﻿
+
 
 function createSolidLayer(args) {
     try {
-        // Extract parameters from args
-        var compName = args.compName || "";
-        var color = args.color || [1, 1, 1]; // Default to white
-        var name = args.name || "Solid Layer";
-        var position = args.position || [960, 540]; // Default to center
-        var size = args.size; // Width, Height (if null, will use comp size)
-        var startTime = args.startTime || 0;
-        var duration = args.duration || 5; // Default 5 seconds
-        var isAdjustment = args.isAdjustment || false; // Make it an adjustment layer?
         
-        // Find the composition by name
+        var compName = args.compName || "";
+        var color = args.color || [1, 1, 1]; 
+        var name = args.name || "Solid Layer";
+        var position = args.position || [960, 540]; 
+        var size = args.size; 
+        var startTime = args.startTime || 0;
+        var duration = args.duration || 5; 
+        var isAdjustment = args.isAdjustment || false; 
+        
+        
         var comp = null;
         for (var i = 1; i <= app.project.numItems; i++) {
             var item = app.project.item(i);
@@ -23,7 +23,7 @@ function createSolidLayer(args) {
             }
         }
         
-        // If no composition was found by name, use the active composition
+        
         if (!comp) {
             if (app.project.activeItem instanceof CompItem) {
                 comp = app.project.activeItem;
@@ -32,39 +32,39 @@ function createSolidLayer(args) {
             }
         }
         
-        // If size is not specified, use composition size
+        
         if (!size) {
             size = [comp.width, comp.height];
         }
         
-        // Create a solid layer
+        
         var solidLayer;
         
         if (isAdjustment) {
-            // Create an adjustment layer
+            
             solidLayer = comp.layers.addSolid([0, 0, 0], name, size[0], size[1], 1);
             solidLayer.adjustmentLayer = true;
         } else {
-            // Create a regular solid layer
+            
             solidLayer = comp.layers.addSolid(
                 color,
                 name,
                 size[0],
                 size[1],
-                1 // Pixel aspect ratio
+                1 
             );
         }
         
-        // Set position
+        
         solidLayer.property("Position").setValue(position);
         
-        // Set timing
+        
         solidLayer.startTime = startTime;
         if (duration > 0) {
             solidLayer.outPoint = startTime + duration;
         }
         
-        // Return success with layer details
+        
         return JSON.stringify({
             status: "success",
             message: isAdjustment ? "Adjustment layer created successfully" : "Solid layer created successfully",
@@ -79,7 +79,7 @@ function createSolidLayer(args) {
             }
         }, null, 2);
     } catch (error) {
-        // Return error message
+        
         return JSON.stringify({
             status: "error",
             message: error.toString()
@@ -87,7 +87,7 @@ function createSolidLayer(args) {
     }
 }
 
-// Read arguments from the file (passed by the Node.js script)
+
 var argsFile = new File($.fileName.replace(/[^\\\/]*$/, '') + "../temp/args.json");
 var args = {};
 if (argsFile.exists) {
@@ -98,7 +98,7 @@ if (argsFile.exists) {
         try {
             args = JSON.parse(content);
         } catch (e) {
-            // Handle parsing error
+            
             $.write(JSON.stringify({
                 status: "error",
                 message: "Failed to parse arguments: " + e.toString()
@@ -107,8 +107,8 @@ if (argsFile.exists) {
     }
 }
 
-// Run the function and write the result
+
 var result = createSolidLayer(args);
 
-// Write the result so it can be captured by the Node.js process
+
 $.write(result); 

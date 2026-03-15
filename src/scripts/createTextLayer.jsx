@@ -1,20 +1,20 @@
-// createTextLayer.jsx
-// Creates a new text layer in the specified composition
+﻿
+
 
 function createTextLayer(args) {
     try {
-        // Extract parameters from args
+        
         var compName = args.compName || "";
         var text = args.text || "Text Layer";
-        var position = args.position || [960, 540]; // Default to center
+        var position = args.position || [960, 540]; 
         var fontSize = args.fontSize || 72;
-        var color = args.color || [1, 1, 1]; // Default to white
+        var color = args.color || [1, 1, 1]; 
         var startTime = args.startTime || 0;
-        var duration = args.duration || 5; // Default 5 seconds
+        var duration = args.duration || 5; 
         var fontFamily = args.fontFamily || "Arial";
-        var alignment = args.alignment || "center"; // "left", "center", "right"
+        var alignment = args.alignment || "center"; 
         
-        // Find the composition by name
+        
         var comp = null;
         for (var i = 1; i <= app.project.numItems; i++) {
             var item = app.project.item(i);
@@ -24,7 +24,7 @@ function createTextLayer(args) {
             }
         }
         
-        // If no composition was found by name, use the active composition
+        
         if (!comp) {
             if (app.project.activeItem instanceof CompItem) {
                 comp = app.project.activeItem;
@@ -33,19 +33,19 @@ function createTextLayer(args) {
             }
         }
         
-        // Create the text layer
+        
         var textLayer = comp.layers.addText(text);
         
-        // Get text properties
+        
         var textProp = textLayer.property("ADBE Text Properties").property("ADBE Text Document");
         var textDocument = textProp.value;
         
-        // Set font size and color
+        
         textDocument.fontSize = fontSize;
         textDocument.fillColor = color;
         textDocument.font = fontFamily;
         
-        // Set text alignment
+        
         if (alignment === "left") {
             textDocument.justification = ParagraphJustification.LEFT_JUSTIFY;
         } else if (alignment === "center") {
@@ -54,19 +54,19 @@ function createTextLayer(args) {
             textDocument.justification = ParagraphJustification.RIGHT_JUSTIFY;
         }
         
-        // Update the text property
+        
         textProp.setValue(textDocument);
         
-        // Set position
+        
         textLayer.property("Position").setValue(position);
         
-        // Set timing
+        
         textLayer.startTime = startTime;
         if (duration > 0) {
             textLayer.outPoint = startTime + duration;
         }
         
-        // Return success with layer details
+        
         return JSON.stringify({
             status: "success",
             message: "Text layer created successfully",
@@ -80,7 +80,7 @@ function createTextLayer(args) {
             }
         }, null, 2);
     } catch (error) {
-        // Return error message
+        
         return JSON.stringify({
             status: "error",
             message: error.toString()
@@ -88,7 +88,7 @@ function createTextLayer(args) {
     }
 }
 
-// Read arguments from the file (passed by the Node.js script)
+
 var argsFile = new File($.fileName.replace(/[^\\\/]*$/, '') + "../temp/args.json");
 var args = {};
 if (argsFile.exists) {
@@ -99,7 +99,7 @@ if (argsFile.exists) {
         try {
             args = JSON.parse(content);
         } catch (e) {
-            // Handle parsing error
+            
             $.write(JSON.stringify({
                 status: "error",
                 message: "Failed to parse arguments: " + e.toString()
@@ -108,8 +108,8 @@ if (argsFile.exists) {
     }
 }
 
-// Run the function and write the result
+
 var result = createTextLayer(args);
 
-// Write the result so it can be captured by the Node.js process
+
 $.write(result); 

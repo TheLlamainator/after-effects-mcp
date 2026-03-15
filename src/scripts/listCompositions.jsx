@@ -1,5 +1,5 @@
-// listCompositions.jsx
-// Lists all compositions in the current project
+﻿
+
 
 function listCompositions() {
     var project = app.project;
@@ -27,7 +27,7 @@ function listCompositions() {
     return JSON.stringify(result, null, 2);
 }
 
-// Read arguments from the file (passed by the Node.js script)
+
 var argsFile = new File($.fileName.replace(/[^\\\/]*$/, '') + "../temp/args.json");
 var args = {};
 if (argsFile.exists) {
@@ -38,13 +38,13 @@ if (argsFile.exists) {
         try {
             args = JSON.parse(content);
         } catch (e) {
-            // Handle parsing error
+            
         }
     }
 }
 
-// Run the function and write the result
+
 var result = listCompositions();
 
-// Write the result so it can be captured by the Node.js process
+
 $.write(result);

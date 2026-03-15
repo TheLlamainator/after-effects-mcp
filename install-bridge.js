@@ -1,19 +1,19 @@
-// install-bridge.js
-// Script to install the After Effects MCP Bridge to the ScriptUI Panels folder
+﻿
+
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
-// ES Modules replacement for __dirname
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Detect platform
+
 const isMac = process.platform === 'darwin';
 const isWindows = process.platform === 'win32';
 
-// Possible After Effects installation paths (common locations)
+
 const possiblePaths = isMac
   ? [
       '/Applications/Adobe After Effects 2026',
@@ -32,7 +32,7 @@ const possiblePaths = isMac
       'C:\\Program Files\\Adobe\\Adobe After Effects 2021'
     ];
 
-// Find valid After Effects installation
+
 let afterEffectsPath = null;
 for (const testPath of possiblePaths) {
   if (fs.existsSync(testPath)) {
@@ -53,7 +53,7 @@ if (!afterEffectsPath) {
   process.exit(1);
 }
 
-// Define source path
+
 const sourceScript = path.join(__dirname, 'build', 'scripts', 'mcp-bridge-auto.jsx');
 
 function collectDestinationScripts() {
@@ -64,10 +64,10 @@ function collectDestinationScripts() {
     return destinations;
   }
 
-  // Global install path (may require elevation)
+  
   destinations.push(path.join(afterEffectsPath, 'Support Files', 'Scripts', 'ScriptUI Panels', 'mcp-bridge-auto.jsx'));
 
-  // Per-user paths (preferred, no elevation needed)
+  
   const appData = process.env.APPDATA;
   if (appData) {
     const aeRoot = path.join(appData, 'Adobe', 'After Effects');
@@ -82,7 +82,7 @@ function collectDestinationScripts() {
     }
   }
 
-  // De-duplicate while preserving order
+  
   const unique = [];
   const seen = new Set();
   for (const d of destinations) {
@@ -109,14 +109,14 @@ function copyElevatedWindows(destinationScript) {
   execSync(`powershell -Command "${command}"`, { stdio: 'inherit' });
 }
 
-// Ensure source script exists
+
 if (!fs.existsSync(sourceScript)) {
   console.error(`Error: Source script not found at ${sourceScript}`);
   console.error('Please run "npm run build" first to generate the script.');
   process.exit(1);
 }
 
-// Copy the script
+
 try {
   const destinations = collectDestinationScripts();
   if (destinations.length === 0) {
@@ -130,7 +130,7 @@ try {
     try {
       console.log(`Installing bridge script to ${destinationScript}...`);
 
-      // Try direct copy first
+      
       try {
         copyDirect(destinationScript);
       } catch (directError) {

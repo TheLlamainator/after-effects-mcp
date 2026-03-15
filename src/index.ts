@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+﻿import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { execSync } from "child_process";
 import * as fs from "fs";
@@ -7,51 +7,51 @@ import * as path from "path";
 import { z } from "zod";
 import { fileURLToPath } from 'url';
 
-// Create an MCP server
+
 const server = new McpServer({
   name: "AfterEffectsServer",
   version: "1.0.0"
 });
 
-// ES Modules replacement for __dirname
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Define paths
+
 const SCRIPTS_DIR = path.join(__dirname, "scripts");
 const TEMP_DIR = path.join(__dirname, "temp");
 
-// Get the correct directory for AE bridge files
-// Use ~/Documents/ae-mcp-bridge for reliable cross-process access
+
+
 function getAETempDir(): string {
   const homeDir = os.homedir();
   const bridgeDir = path.join(homeDir, 'Documents', 'ae-mcp-bridge');
-  // Ensure the directory exists
+  
   if (!fs.existsSync(bridgeDir)) {
     fs.mkdirSync(bridgeDir, { recursive: true });
   }
   return bridgeDir;
 }
 
-// Headless CLI execution has been removed. All interactions are routed through the Bridge panel.
 
-// Helper function to read results from After Effects temp file
+
+
 function readResultsFromTempFile(): string {
   try {
     const tempFilePath = path.join(getAETempDir(), 'ae_mcp_result.json');
     
-    // Add debugging info
+    
     console.error(`Checking for results at: ${tempFilePath}`);
     
     if (fs.existsSync(tempFilePath)) {
-      // Get file stats to check modification time
+      
       const stats = fs.statSync(tempFilePath);
       console.error(`Result file exists, last modified: ${stats.mtime.toISOString()}`);
       
       const content = fs.readFileSync(tempFilePath, 'utf8');
       console.error(`Result file content length: ${content.length} bytes`);
       
-      // If the result file is older than 30 seconds, warn the user
+      
       const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
       if (stats.mtime < thirtySecondsAgo) {
         console.error(`WARNING: Result file is older than 30 seconds. After Effects may not be updating results.`);
@@ -74,7 +74,7 @@ function readResultsFromTempFile(): string {
   }
 }
 
-// Helper to wait for a fresh result produced by a specific command
+
 async function waitForBridgeResult(expectedCommand?: string, timeoutMs: number = 5000, pollMs: number = 250): Promise<string> {
   const start = Date.now();
   const resultPath = path.join(getAETempDir(), 'ae_mcp_result.json');
@@ -92,11 +92,11 @@ async function waitForBridgeResult(expectedCommand?: string, timeoutMs: number =
               return content;
             }
           } catch {
-            // not JSON yet; continue polling
+            
           }
         }
       } catch {
-        // transient read error; continue polling
+        
       }
     }
     await new Promise(r => setTimeout(r, pollMs));
@@ -104,7 +104,7 @@ async function waitForBridgeResult(expectedCommand?: string, timeoutMs: number =
   return JSON.stringify({ error: `Timed out waiting for bridge result${expectedCommand ? ` for command '${expectedCommand}'` : ''}.` });
 }
 
-// Helper function to write command to file
+
 function writeCommandFile(command: string, args: Record<string, any> = {}): void {
   try {
     const commandFile = path.join(getAETempDir(), 'ae_command.json');
@@ -112,7 +112,7 @@ function writeCommandFile(command: string, args: Record<string, any> = {}): void
       command,
       args,
       timestamp: new Date().toISOString(),
-      status: "pending"  // pending, running, completed, error
+      status: "pending"  
     };
     fs.writeFileSync(commandFile, JSON.stringify(commandData, null, 2));
     console.error(`Command "${command}" written to ${commandFile}`);
@@ -121,12 +121,12 @@ function writeCommandFile(command: string, args: Record<string, any> = {}): void
   }
 }
 
-// Helper function to clear the results file to avoid stale cache
+
 function clearResultsFile(): void {
   try {
     const resultFile = path.join(getAETempDir(), 'ae_mcp_result.json');
     
-    // Write a placeholder message to indicate the file is being reset
+    
     const resetData = {
       status: "waiting",
       message: "Waiting for new result from After Effects...",
@@ -159,7 +159,7 @@ function uniqueExistingDirs(pathsToCheck: string[]): string[] {
           result.push(normalized);
         }
       } catch {
-        // ignore inaccessible path
+        
       }
     }
   }
@@ -246,7 +246,7 @@ function collectPresetFiles(
           modifiedAt: stat.mtime.toISOString(),
         });
       } catch {
-        // skip unreadable file
+        
       }
     }
   }
@@ -261,12 +261,12 @@ function collectPresetFiles(
   return results;
 }
 
-// Add a resource to expose project compositions
+
 server.resource(
   "compositions",
   "aftereffects://compositions",
   async (uri) => {
-    // Clear old results, queue the command, and wait for bridge output
+    
     clearResultsFile();
     writeCommandFile("listCompositions", {});
     const result = await waitForBridgeResult("listCompositions", 6000, 250);
@@ -281,7 +281,7 @@ server.resource(
   }
 );
 
-// Add a tool for running read-only scripts
+
 server.tool(
   "run-script",
   "Run a read-only script in After Effects",
@@ -290,7 +290,7 @@ server.tool(
     parameters: z.record(z.any()).optional().describe("Optional parameters for the script")
   },
   async ({ script, parameters = {} }) => {
-    // Validate that script is safe (only allow predefined scripts)
+    
     const allowedScripts = [
       "listCompositions", 
       "getProjectInfo", 
@@ -334,10 +334,10 @@ server.tool(
     }
 
     try {
-      // Clear any stale result data
+      
       clearResultsFile();
       
-      // Write command to file for After Effects to pick up
+      
       writeCommandFile(script, parameters);
       
       return {
@@ -364,7 +364,7 @@ server.tool(
   }
 );
 
-// Add a tool to get the results from the last script execution
+
 server.tool(
   "get-results",
   "Get results from the last script executed in After Effects",
@@ -394,7 +394,7 @@ server.tool(
   }
 );
 
-// Add prompts for common After Effects tasks
+
 server.prompt(
   "list-compositions",
   "List compositions in the current After Effects project",
@@ -429,7 +429,7 @@ server.prompt(
   }
 );
 
-// Add a prompt for creating compositions
+
 server.prompt(
   "create-composition",
   "Create a new composition with specified settings",
@@ -446,7 +446,7 @@ server.prompt(
   }
 );
 
-// Add a tool to provide help and instructions
+
 server.tool(
   "get-help",
   "Get help on using the After Effects MCP integration",
@@ -526,7 +526,7 @@ Note: The auto-running panel can be left open in After Effects to continuously l
   }
 );
 
-// Add a tool specifically for creating compositions
+
 server.tool(
   "create-composition",
   "Create a new composition in After Effects with specified parameters",
@@ -545,7 +545,7 @@ server.tool(
   },
   async (params) => {
     try {
-      // Write command to file for After Effects to pick up
+      
       writeCommandFile("createComposition", params);
       
       return {
@@ -685,31 +685,31 @@ server.tool(
   }
 );
 
-// --- BEGIN NEW TOOLS --- 
 
-// Zod schema for common layer identification
+
+
 const LayerIdentifierSchema = {
   compIndex: z.number().int().positive().describe("1-based index of the target composition in the project panel."),
   layerIndex: z.number().int().positive().describe("1-based index of the target layer within the composition.")
 };
 
-// Zod schema for keyframe value (more specific types might be needed depending on property)
-// Using z.any() for flexibility, but can be refined (e.g., z.array(z.number()) for position/scale)
+
+
 const KeyframeValueSchema = z.any().describe("The value for the keyframe (e.g., [x,y] for Position, [w,h] for Scale, angle for Rotation, percentage for Opacity)");
 
-// Tool for setting a layer keyframe
+
 server.tool(
-  "setLayerKeyframe", // Corresponds to the function name in ExtendScript
+  "setLayerKeyframe", 
   "Set a keyframe for a specific layer property at a given time.",
   {
-    ...LayerIdentifierSchema, // Reuse common identifiers
+    ...LayerIdentifierSchema, 
     propertyName: z.string().describe("Name of the property to keyframe (e.g., 'Position', 'Scale', 'Rotation', 'Opacity')."),
     timeInSeconds: z.number().describe("The time (in seconds) for the keyframe."),
     value: KeyframeValueSchema
   },
   async (parameters) => {
     try {
-      // Queue the command for After Effects
+      
       writeCommandFile("setLayerKeyframe", parameters);
       
       return {
@@ -735,18 +735,18 @@ server.tool(
   }
 );
 
-// Tool for setting a layer expression
+
 server.tool(
-  "setLayerExpression", // Corresponds to the function name in ExtendScript
+  "setLayerExpression", 
   "Set or remove an expression for a specific layer property.",
   {
-    ...LayerIdentifierSchema, // Reuse common identifiers
+    ...LayerIdentifierSchema, 
     propertyName: z.string().describe("Name of the property to apply the expression to (e.g., 'Position', 'Scale', 'Rotation', 'Opacity')."),
     expressionString: z.string().describe("The JavaScript expression string. Provide an empty string (\"\") to remove the expression.")
   },
   async (parameters) => {
     try {
-      // Queue the command for After Effects
+      
       writeCommandFile("setLayerExpression", parameters);
       
       return {
@@ -772,10 +772,10 @@ server.tool(
   }
 );
 
-// --- END NEW TOOLS --- 
 
-// --- BEGIN NEW TESTING TOOL --- 
-// Add a special tool for directly testing the keyframe functionality
+
+
+
 server.tool(
   "test-animation",
   "Test animation functionality in After Effects",
@@ -786,32 +786,25 @@ server.tool(
   },
   async (params) => {
     try {
-      // Generate a unique timestamp
+      
       const timestamp = new Date().getTime();
       const tempFile = path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), `ae_test_${timestamp}.jsx`);
       
-      // Create a direct test script that doesn't rely on command files
+      
       let scriptContent = "";
       if (params.operation === "keyframe") {
         scriptContent = `
-          // Direct keyframe test script
           try {
             var comp = app.project.items[${params.compIndex}];
             var layer = comp.layers[${params.layerIndex}];
             var prop = layer.property("Transform").property("Opacity");
             var time = 1; // 1 second
             var value = 25; // 25% opacity
-            
-            // Set a keyframe
             prop.setValueAtTime(time, value);
-            
-            // Write direct result
             var resultFile = new File("${path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), 'ae_test_result.txt').replace(/\\/g, '\\\\')}");
             resultFile.open("w");
             resultFile.write("SUCCESS: Added keyframe at time " + time + " with value " + value);
             resultFile.close();
-            
-            // Visual feedback
             alert("Test successful: Added opacity keyframe at " + time + "s with value " + value + "%");
           } catch (e) {
             var errorFile = new File("${path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), 'ae_test_error.txt').replace(/\\/g, '\\\\')}");
@@ -824,23 +817,16 @@ server.tool(
         `;
       } else if (params.operation === "expression") {
         scriptContent = `
-          // Direct expression test script
           try {
             var comp = app.project.items[${params.compIndex}];
             var layer = comp.layers[${params.layerIndex}];
             var prop = layer.property("Transform").property("Position");
             var expression = "wiggle(3, 30)";
-            
-            // Set the expression
             prop.expression = expression;
-            
-            // Write direct result
             var resultFile = new File("${path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), 'ae_test_result.txt').replace(/\\/g, '\\\\')}");
             resultFile.open("w");
             resultFile.write("SUCCESS: Added expression: " + expression);
             resultFile.close();
-            
-            // Visual feedback
             alert("Test successful: Added position expression: " + expression);
           } catch (e) {
             var errorFile = new File("${path.join(process.env.TEMP || process.env.TMP || os.tmpdir(), 'ae_test_error.txt').replace(/\\/g, '\\\\')}");
@@ -853,11 +839,11 @@ server.tool(
         `;
       }
       
-      // Write the script to a temp file
+      
       fs.writeFileSync(tempFile, scriptContent);
       console.error(`Written test script to: ${tempFile}`);
       
-      // Tell the user what to do
+      
       return {
         content: [
           {
@@ -886,11 +872,11 @@ This bypasses the MCP Bridge Auto panel and will directly modify the specified l
     }
   }
 );
-// --- END NEW TESTING TOOL --- 
 
-// --- BEGIN NEW EFFECTS TOOLS ---
 
-// Add a tool for applying effects to layers
+
+
+
 server.tool(
   "apply-effect",
   "Apply an effect to a layer in After Effects",
@@ -907,7 +893,7 @@ server.tool(
   },
   async (parameters) => {
     try {
-      // Queue the command for After Effects
+      
       writeCommandFile("applyEffect", parameters);
       
       return {
@@ -975,7 +961,7 @@ server.tool(
   }
 );
 
-// Add a tool for applying effect templates
+
 server.tool(
   "apply-effect-template",
   "Apply a predefined effect template to a layer in After Effects",
@@ -997,7 +983,7 @@ server.tool(
   },
   async (parameters) => {
     try {
-      // Queue the command for After Effects
+      
       writeCommandFile("applyEffectTemplate", parameters);
       
       return {
@@ -1388,9 +1374,9 @@ server.tool(
   }
 );
 
-// --- END NEW EFFECTS TOOLS ---
 
-// Add direct MCP function for applying effects
+
+
 server.tool(
   "mcp_aftereffects_applyEffect",
   "Apply an effect to a layer in After Effects",
@@ -1405,13 +1391,13 @@ server.tool(
   },
   async (parameters) => {
     try {
-      // Queue the command for After Effects
+      
       writeCommandFile("applyEffect", parameters);
       
-      // Wait a bit for After Effects to process the command
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Get the results
+      
       const result = readResultsFromTempFile();
       
       return {
@@ -1436,7 +1422,7 @@ server.tool(
   }
 );
 
-// Add direct MCP function for applying effect templates
+
 server.tool(
   "mcp_aftereffects_applyEffectTemplate",
   "Apply a predefined effect template to a layer in After Effects",
@@ -1458,13 +1444,13 @@ server.tool(
   },
   async (parameters) => {
     try {
-      // Queue the command for After Effects
+      
       writeCommandFile("applyEffectTemplate", parameters);
       
-      // Wait a bit for After Effects to process the command
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Get the results
+      
       const result = readResultsFromTempFile();
       
       return {
@@ -1489,7 +1475,7 @@ server.tool(
   }
 );
 
-// Update help information to include the new effects tools
+
 server.tool(
   "mcp_aftereffects_get_effects_help",
   "Get help on using After Effects effects",
@@ -1574,17 +1560,17 @@ To apply the "cinematic-look" template:
   }
 );
 
-// Add a direct tool for our bridge test effects
+
 server.tool(
   "run-bridge-test",
   "Run the bridge test effects script to verify communication and apply test effects",
   {},
   async () => {
     try {
-      // Clear any stale result data
+      
       clearResultsFile();
       
-      // Write command to file for After Effects to pick up
+      
       writeCommandFile("bridgeTestEffects", {});
       
       return {
@@ -1861,7 +1847,7 @@ server.tool(
   }
 );
 
-// Start the MCP server
+
 async function main() {
   console.error("After Effects MCP Server starting...");
   console.error(`Scripts directory: ${SCRIPTS_DIR}`);
@@ -1876,3 +1862,4 @@ main().catch(error => {
   console.error("Fatal error:", error);
   process.exit(1);
 });
+

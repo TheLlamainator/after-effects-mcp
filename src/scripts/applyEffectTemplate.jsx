@@ -1,33 +1,33 @@
-// applyEffectTemplate.jsx
-// Applies predefined effect templates to layers
+﻿
+
 
 function applyEffectTemplate(args) {
     try {
-        // Extract parameters
-        var compIndex = args.compIndex || 1; // Default to first comp
-        var layerIndex = args.layerIndex || 1; // Default to first layer
-        var templateName = args.templateName; // Name of the template to apply
-        var customSettings = args.customSettings || {}; // Optional customizations
+        
+        var compIndex = args.compIndex || 1; 
+        var layerIndex = args.layerIndex || 1; 
+        var templateName = args.templateName; 
+        var customSettings = args.customSettings || {}; 
         
         if (!templateName) {
             throw new Error("You must specify a templateName");
         }
         
-        // Find the composition by index
+        
         var comp = app.project.item(compIndex);
         if (!comp || !(comp instanceof CompItem)) {
             throw new Error("Composition not found at index " + compIndex);
         }
         
-        // Find the layer by index
+        
         var layer = comp.layer(layerIndex);
         if (!layer) {
             throw new Error("Layer not found at index " + layerIndex + " in composition '" + comp.name + "'");
         }
         
-        // Template definitions
+        
         var templates = {
-            // Blur effects
+            
             "gaussian-blur": {
                 effectMatchName: "ADBE Gaussian Blur 2",
                 settings: {
@@ -42,7 +42,7 @@ function applyEffectTemplate(args) {
                 }
             },
             
-            // Color correction effects
+            
             "color-balance": {
                 effectMatchName: "ADBE Color Balance (HLS)",
                 settings: {
@@ -61,10 +61,10 @@ function applyEffectTemplate(args) {
             },
             "curves": {
                 effectMatchName: "ADBE CurvesCustom",
-                // Curves are complex and would need special handling
+                
             },
             
-            // Stylistic effects
+            
             "glow": {
                 effectMatchName: "ADBE Glow",
                 settings: {
@@ -84,7 +84,7 @@ function applyEffectTemplate(args) {
                 }
             },
             
-            // Common effect chains
+            
             "cinematic-look": {
                 effects: [
                     {
@@ -123,7 +123,7 @@ function applyEffectTemplate(args) {
             }
         };
         
-        // Check if the requested template exists
+        
         var template = templates[templateName];
         if (!template) {
             var templateNames = [];
@@ -138,12 +138,12 @@ function applyEffectTemplate(args) {
         
         var appliedEffects = [];
         
-        // Apply single effect or multiple effects based on template structure
+        
         if (template.effectMatchName) {
-            // Single effect template
+            
             var effect = layer.Effects.addProperty(template.effectMatchName);
             
-            // Apply settings
+            
             for (var propName in template.settings) {
                 try {
                     var property = effect.property(propName);
@@ -160,12 +160,12 @@ function applyEffectTemplate(args) {
                 matchName: effect.matchName
             });
         } else if (template.effects) {
-            // Multiple effects template
+            
             for (var i = 0; i < template.effects.length; i++) {
                 var effectData = template.effects[i];
                 var effect = layer.Effects.addProperty(effectData.effectMatchName);
                 
-                // Apply settings
+                
                 for (var propName in effectData.settings) {
                     try {
                         var property = effect.property(propName);
@@ -205,7 +205,7 @@ function applyEffectTemplate(args) {
     }
 }
 
-// Read arguments from the temp args file written by the launcher
+
 var argsFile = new File($.fileName.replace(/[^\\\/]*$/, '') + "../temp/args.json");
 var args = {};
 if (argsFile.exists) {
@@ -217,8 +217,8 @@ if (argsFile.exists) {
     }
 }
 
-// Run the function and write the result
+
 var result = applyEffectTemplate(args);
 
-// Write the result so it can be captured by the Node.js process
+
 $.write(result); 
